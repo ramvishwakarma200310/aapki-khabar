@@ -89,11 +89,15 @@
 
         newsDiv.innerHTML += `
           <div class="card">
-            <img src="${image}" alt="news image" />
-            <h3>${n.title || ""}</h3>
-            <p>${n.description || ""}</p>
-            <div class="meta">${n.city || ""} | ${n.category || ""}</div>
-          </div>
+    <div class="image-box">
+      <img src="${image}" alt="news image" />
+    </div>
+    <div class="content">
+      <h3>${n.title || ""}</h3>
+      <p>${n.description || ""}</p>
+      <div class="meta">${n.city || ""} | ${n.category || ""}</div>
+    </div>
+  </div>
         `;
       });
     });
