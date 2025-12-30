@@ -23,6 +23,14 @@
       text-align: center;
     }
 
+    header button {
+      margin: 5px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
     .news {
       padding: 15px;
     }
@@ -35,38 +43,33 @@
       overflow: hidden;
     }
 
-    /* 🔥 IMAGE FIX (IMPORTANT) */
-    .image-box {
-      width: 100%;
-      height: 200px;
-      background: #eee;
-      overflow: hidden;
-    }
-
-    .image-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
     .content {
-      padding: 10px;
+      padding: 12px;
     }
 
     .content h3 {
-      margin: 5px 0;
+      margin: 0 0 8px 0;
     }
 
     .content p {
-      margin: 8px 0;
+      margin: 0 0 10px 0;
       color: #444;
       font-size: 14px;
+    }
+
+    .content button {
+      background: #d32f2f;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
     }
 
     .meta {
       font-size: 12px;
       color: #777;
+      margin-top: 6px;
     }
   </style>
 </head>
@@ -75,7 +78,12 @@
 
 <header>
   <h2>🗞️ Aapki Khabar</h2>
-  <p>आपकी शहर की खबरें</p>
+  <p>समझने वाली खबरें • Easy to Understand News</p>
+
+  <div>
+    <button onclick="setLang('hi')">हिंदी</button>
+    <button onclick="setLang('en')">English</button>
+  </div>
 </header>
 
 <div class="news" id="newsList">
@@ -83,7 +91,16 @@
 </div>
 
 <script>
-  // Firebase config
+  /* ---------------- LANGUAGE LOGIC ---------------- */
+  let currentLang = localStorage.getItem("lang") || "hi";
+
+  function setLang(lang) {
+    currentLang = lang;
+    localStorage.setItem("lang", lang);
+    loadNews();
+  }
+
+  /* ---------------- FIREBASE CONFIG ---------------- */
   const firebaseConfig = {
     apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
     authDomain: "aapki-khabar-171e9.firebaseapp.com",
@@ -93,34 +110,55 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  db.collection("news")
-    .orderBy("createdAt", "desc")
-    .onSnapshot(snapshot => {
-      const newsDiv = document.getElementById("newsList");
-      newsDiv.innerHTML = "";
+  /* ---------------- LOAD NEWS ---------------- */
+  function loadNews() {
+    const newsDiv = document.getElementById("newsList");
+    newsDiv.innerHTML = "Loading news...";
 
-      snapshot.forEach(doc => {
-        const n = doc.data();
+    db.collection("news")
+      .orderBy("createdAt", "desc")
+      .limit(10)
+      .get()
+      .then(snapshot => {
+        newsDiv.innerHTML = "";
 
-        const image =
-          n.imageUrl && n.imageUrl.trim() !== ""
-            ? n.imageUrl.trim()
-            : "https://picsum.photos/600/400";
+        if (snapshot.empty) {
+          newsDiv.innerHTML = "No news available.";
+          return;
+        }
 
-        newsDiv.innerHTML += `
-          <div class="card">
-            <div class="image-box">
-              <img src="${image}" alt="news image">
+        snapshot.forEach(doc => {
+          const n = doc.data();
+          const langData = n.language && n.language[currentLang];
+
+          if (!langData) return;
+
+          newsDiv.innerHTML += `
+            <div class="card">
+              <div class="content">
+                <h3>${langData.headline}</h3>
+                <p>${langData.summary}</p>
+
+                <button onclick="showLoginAlert()">
+                  Read Full News
+                </button>
+
+                <div class="meta">
+                  ${n.category || ""} • ${n.source || ""}
+                </div>
+              </div>
             </div>
-            <div class="content">
-              <h3>${n.title || ""}</h3>
-              <p>${n.description || ""}</p>
-              <div class="meta">${n.city || ""} | ${n.category || ""}</div>
-            </div>
-          </div>
-        `;
+          `;
+        });
       });
-    });
+  }
+
+  loadNews();
+
+  /* ---------------- LOGIN PLACEHOLDER ---------------- */
+  function showLoginAlert() {
+    alert("Please login with phone number to read full news.");
+  }
 </script>
 
 </body>
