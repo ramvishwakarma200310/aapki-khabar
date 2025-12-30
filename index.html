@@ -8,68 +8,23 @@
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: #f4f4f4;
+    body { margin:0; font-family:Arial; background:#f4f4f4; }
+    header { background:#d32f2f; color:#fff; padding:15px; text-align:center; }
+    button { padding:8px 12px; border:none; border-radius:4px; cursor:pointer; }
+    .news { padding:15px; }
+    .card { background:#fff; margin-bottom:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,.1); }
+    .content { padding:12px; }
+    .meta { font-size:12px; color:#777; margin-top:6px; }
+    .login-box {
+      background:#fff; padding:15px; margin:15px;
+      border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,.1);
     }
-
-    header {
-      background: #d32f2f;
-      color: #fff;
-      padding: 15px;
-      text-align: center;
-    }
-
-    header button {
-      margin: 5px;
-      padding: 6px 12px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .news {
-      padding: 15px;
-    }
-
-    .card {
-      background: #fff;
-      margin-bottom: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-
-    .content {
-      padding: 12px;
-    }
-
-    .content h3 {
-      margin: 0 0 8px 0;
-    }
-
-    .content p {
-      margin: 0 0 10px 0;
-      color: #444;
-      font-size: 14px;
-    }
-
-    .content button {
-      background: #d32f2f;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .meta {
-      font-size: 12px;
-      color: #777;
-      margin-top: 6px;
+    input {
+      width:100%; padding:10px; margin:8px 0;
+      border-radius:4px; border:1px solid #ccc;
     }
   </style>
 </head>
@@ -80,27 +35,28 @@
   <h2>🗞️ Aapki Khabar</h2>
   <p>समझने वाली खबरें • Easy to Understand News</p>
 
-  <div>
-    <button onclick="setLang('hi')">हिंदी</button>
-    <button onclick="setLang('en')">English</button>
-  </div>
+  <button onclick="setLang('hi')">हिंदी</button>
+  <button onclick="setLang('en')">English</button>
+  <button onclick="logout()">Logout</button>
 </header>
 
-<div class="news" id="newsList">
-  Loading news...
+<div id="loginSection" class="login-box" style="display:none;">
+  <h3>Login to read full news</h3>
+  <input type="text" id="phone" placeholder="+91XXXXXXXXXX" />
+  <button onclick="sendOTP()">Send OTP</button>
+
+  <div id="otpBox" style="display:none;">
+    <input type="text" id="otp" placeholder="Enter OTP" />
+    <button onclick="verifyOTP()">Verify OTP</button>
+  </div>
+
+  <div id="recaptcha-container"></div>
 </div>
 
+<div class="news" id="newsList">Loading news...</div>
+
 <script>
-  /* ---------------- LANGUAGE LOGIC ---------------- */
-  let currentLang = localStorage.getItem("lang") || "hi";
-
-  function setLang(lang) {
-    currentLang = lang;
-    localStorage.setItem("lang", lang);
-    loadNews();
-  }
-
-  /* ---------------- FIREBASE CONFIG ---------------- */
+  /* ---------- CONFIG ---------- */
   const firebaseConfig = {
     apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
     authDomain: "aapki-khabar-171e9.firebaseapp.com",
@@ -109,8 +65,50 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const auth = firebase.auth();
 
-  /* ---------------- LOAD NEWS ---------------- */
+  let currentLang = localStorage.getItem("lang") || "hi";
+  let isLoggedIn = false;
+
+  function setLang(lang) {
+    currentLang = lang;
+    localStorage.setItem("lang", lang);
+    loadNews();
+  }
+
+  /* ---------- AUTH ---------- */
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
+    "recaptcha-container",
+    { size: "invisible" }
+  );
+
+  auth.onAuthStateChanged(user => {
+    isLoggedIn = !!user;
+    document.getElementById("loginSection").style.display =
+      isLoggedIn ? "none" : "block";
+    loadNews();
+  });
+
+  function sendOTP() {
+    const phone = document.getElementById("phone").value;
+    auth.signInWithPhoneNumber(phone, window.recaptchaVerifier)
+      .then(result => {
+        window.confirmationResult = result;
+        document.getElementById("otpBox").style.display = "block";
+      })
+      .catch(alert);
+  }
+
+  function verifyOTP() {
+    const code = document.getElementById("otp").value;
+    window.confirmationResult.confirm(code).catch(alert);
+  }
+
+  function logout() {
+    auth.signOut();
+  }
+
+  /* ---------- NEWS ---------- */
   function loadNews() {
     const newsDiv = document.getElementById("newsList");
     newsDiv.innerHTML = "Loading news...";
@@ -121,31 +119,24 @@
       .get()
       .then(snapshot => {
         newsDiv.innerHTML = "";
-
-        if (snapshot.empty) {
-          newsDiv.innerHTML = "No news available.";
-          return;
-        }
-
         snapshot.forEach(doc => {
           const n = doc.data();
-          const langData = n.language && n.language[currentLang];
-
-          if (!langData) return;
+          const lang = n.language[currentLang];
+          if (!lang) return;
 
           newsDiv.innerHTML += `
             <div class="card">
               <div class="content">
-                <h3>${langData.headline}</h3>
-                <p>${langData.summary}</p>
+                <h3>${lang.headline}</h3>
+                <p>${lang.summary}</p>
 
-                <button onclick="showLoginAlert()">
-                  Read Full News
-                </button>
+                ${
+                  isLoggedIn
+                    ? `<p><strong>${lang.content}</strong></p>`
+                    : `<button onclick="showLogin()">Read Full News</button>`
+                }
 
-                <div class="meta">
-                  ${n.category || ""} • ${n.source || ""}
-                </div>
+                <div class="meta">${n.category} • ${n.source}</div>
               </div>
             </div>
           `;
@@ -153,11 +144,9 @@
       });
   }
 
-  loadNews();
-
-  /* ---------------- LOGIN PLACEHOLDER ---------------- */
-  function showLoginAlert() {
-    alert("Please login with phone number to read full news.");
+  function showLogin() {
+    document.getElementById("loginSection").style.display = "block";
+    window.scrollTo(0, 0);
   }
 </script>
 
