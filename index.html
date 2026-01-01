@@ -18,13 +18,23 @@
     .card { background:#fff; margin-bottom:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,.1); }
     .content { padding:12px; }
     .meta { font-size:12px; color:#777; margin-top:6px; }
+
+    /* Login box */
     .login-box {
-      background:#fff; padding:15px; margin:15px;
-      border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,.1);
+      display:none;
+      background:#fff;
+      padding:15px;
+      margin:15px;
+      border-radius:8px;
+      box-shadow:0 2px 5px rgba(0,0,0,.15);
     }
+
     input {
-      width:100%; padding:10px; margin:8px 0;
-      border-radius:4px; border:1px solid #ccc;
+      width:100%;
+      padding:10px;
+      margin:8px 0;
+      border-radius:4px;
+      border:1px solid #ccc;
     }
   </style>
 </head>
@@ -34,13 +44,13 @@
 <header>
   <h2>🗞️ Aapki Khabar</h2>
   <p>समझने वाली खबरें • Easy to Understand News</p>
-
   <button onclick="setLang('hi')">हिंदी</button>
   <button onclick="setLang('en')">English</button>
   <button onclick="logout()">Logout</button>
 </header>
 
-<div id="loginSection" class="login-box" style="display:none;">
+<!-- LOGIN SECTION (HIDDEN BY DEFAULT) -->
+<div id="loginSection" class="login-box">
   <h3>Login to read full news</h3>
   <input type="text" id="phone" placeholder="+91XXXXXXXXXX" />
   <button onclick="sendOTP()">Send OTP</button>
@@ -56,7 +66,7 @@
 <div class="news" id="newsList">Loading news...</div>
 
 <script>
-  /* ---------- CONFIG ---------- */
+  /* ---------- FIREBASE ---------- */
   const firebaseConfig = {
     apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
     authDomain: "aapki-khabar-171e9.firebaseapp.com",
@@ -84,8 +94,9 @@
 
   auth.onAuthStateChanged(user => {
     isLoggedIn = !!user;
-    document.getElementById("loginSection").style.display =
-      isLoggedIn ? "none" : "block";
+    if (isLoggedIn) {
+      document.getElementById("loginSection").style.display = "none";
+    }
     loadNews();
   });
 
@@ -111,14 +122,13 @@
   /* ---------- NEWS ---------- */
   function loadNews() {
     const newsDiv = document.getElementById("newsList");
-    newsDiv.innerHTML = "Loading news...";
+    newsDiv.innerHTML = "";
 
     db.collection("news")
       .orderBy("createdAt", "desc")
       .limit(10)
       .get()
       .then(snapshot => {
-        newsDiv.innerHTML = "";
         snapshot.forEach(doc => {
           const n = doc.data();
           const lang = n.language[currentLang];
@@ -145,9 +155,12 @@
   }
 
   function showLogin() {
-    document.getElementById("loginSection").style.display = "block";
-    window.scrollTo(0, 0);
+    const loginBox = document.getElementById("loginSection");
+    loginBox.style.display = "block";
+    loginBox.scrollIntoView({ behavior: "smooth" });
   }
+
+  loadNews();
 </script>
 
 </body>
