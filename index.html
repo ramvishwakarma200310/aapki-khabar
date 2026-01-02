@@ -1,166 +1,164 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Aapki Khabar</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aapki Khabar</title>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-  <style>
-    body { margin:0; font-family:Arial; background:#f4f4f4; }
-    header { background:#d32f2f; color:#fff; padding:15px; text-align:center; }
-    button { padding:8px 12px; border:none; border-radius:4px; cursor:pointer; }
-    .news { padding:15px; }
-    .card { background:#fff; margin-bottom:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,.1); }
-    .content { padding:12px; }
-    .meta { font-size:12px; color:#777; margin-top:6px; }
+<style>
+body{margin:0;font-family:Arial;background:#f4f4f4;}
+header{background:#d32f2f;color:#fff;padding:15px;text-align:center;}
+button{padding:8px 12px;border:none;border-radius:5px;cursor:pointer;}
+.news{padding:15px;}
+.card{background:#fff;margin-bottom:15px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+.content{padding:12px;}
+.meta{font-size:12px;color:#777;margin-top:6px}
 
-    /* Login box */
-    .login-box {
-      display:none;
-      background:#fff;
-      padding:15px;
-      margin:15px;
-      border-radius:8px;
-      box-shadow:0 2px 5px rgba(0,0,0,.15);
-    }
-
-    input {
-      width:100%;
-      padding:10px;
-      margin:8px 0;
-      border-radius:4px;
-      border:1px solid #ccc;
-    }
-  </style>
+/* MODAL */
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  z-index:999;
+}
+.modal-box{
+  background:#fff;
+  width:90%;
+  max-width:400px;
+  margin:20% auto;
+  padding:20px;
+  border-radius:8px;
+}
+input{
+  width:100%;
+  padding:10px;
+  margin:8px 0;
+  border-radius:5px;
+  border:1px solid #ccc;
+}
+.close{
+  float:right;
+  font-size:18px;
+  cursor:pointer;
+}
+</style>
 </head>
 
 <body>
 
 <header>
-  <h2>🗞️ Aapki Khabar</h2>
-  <p>समझने वाली खबरें • Easy to Understand News</p>
-  <button onclick="setLang('hi')">हिंदी</button>
-  <button onclick="setLang('en')">English</button>
-  <button onclick="logout()">Logout</button>
+<h2>🗞️ Aapki Khabar</h2>
+<p>समझने वाली खबरें • Easy to Understand News</p>
+<button onclick="setLang('hi')">हिंदी</button>
+<button onclick="setLang('en')">English</button>
+<button onclick="logout()">Logout</button>
 </header>
 
-<!-- LOGIN SECTION (HIDDEN BY DEFAULT) -->
-<div id="loginSection" class="login-box">
-  <h3>Login to read full news</h3>
-  <input type="text" id="phone" placeholder="+91XXXXXXXXXX" />
-  <button onclick="sendOTP()">Send OTP</button>
+<!-- LOGIN MODAL -->
+<div class="modal" id="loginModal">
+  <div class="modal-box">
+    <span class="close" onclick="closeModal()">✖</span>
+    <h3>Login to continue</h3>
 
-  <div id="otpBox" style="display:none;">
-    <input type="text" id="otp" placeholder="Enter OTP" />
-    <button onclick="verifyOTP()">Verify OTP</button>
+    <input id="phone" placeholder="+91XXXXXXXXXX">
+    <button onclick="sendOTP()">Send OTP</button>
+
+    <div id="otpBox" style="display:none">
+      <input id="otp" placeholder="Enter OTP">
+      <button onclick="verifyOTP()">Verify OTP</button>
+    </div>
+
+    <div id="recaptcha-container"></div>
   </div>
-
-  <div id="recaptcha-container"></div>
 </div>
 
-<div class="news" id="newsList">Loading news...</div>
+<div class="news" id="newsList">Loading...</div>
 
 <script>
-  /* ---------- FIREBASE ---------- */
-  const firebaseConfig = {
-    apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
-    authDomain: "aapki-khabar-171e9.firebaseapp.com",
-    projectId: "aapki-khabar-171e9"
-  };
+/* FIREBASE */
+firebase.initializeApp({
+  apiKey:"AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
+  authDomain:"aapki-khabar-171e9.firebaseapp.com",
+  projectId:"aapki-khabar-171e9"
+});
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const auth = firebase.auth();
+const db=firebase.firestore();
+const auth=firebase.auth();
 
-  let currentLang = localStorage.getItem("lang") || "hi";
-  let isLoggedIn = false;
+let lang=localStorage.getItem("lang")||"hi";
+let loggedIn=false;
 
-  function setLang(lang) {
-    currentLang = lang;
-    localStorage.setItem("lang", lang);
-    loadNews();
-  }
+/* AUTH */
+window.recaptchaVerifier=new firebase.auth.RecaptchaVerifier(
+"recaptcha-container",{size:"invisible"}
+);
 
-  /* ---------- AUTH ---------- */
-  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
-    "recaptcha-container",
-    { size: "invisible" }
-  );
-
-  auth.onAuthStateChanged(user => {
-    isLoggedIn = !!user;
-    if (isLoggedIn) {
-      document.getElementById("loginSection").style.display = "none";
-    }
-    loadNews();
-  });
-
-  function sendOTP() {
-    const phone = document.getElementById("phone").value;
-    auth.signInWithPhoneNumber(phone, window.recaptchaVerifier)
-      .then(result => {
-        window.confirmationResult = result;
-        document.getElementById("otpBox").style.display = "block";
-      })
-      .catch(alert);
-  }
-
-  function verifyOTP() {
-    const code = document.getElementById("otp").value;
-    window.confirmationResult.confirm(code).catch(alert);
-  }
-
-  function logout() {
-    auth.signOut();
-  }
-
-  /* ---------- NEWS ---------- */
-  function loadNews() {
-    const newsDiv = document.getElementById("newsList");
-    newsDiv.innerHTML = "";
-
-    db.collection("news")
-      .orderBy("createdAt", "desc")
-      .limit(10)
-      .get()
-      .then(snapshot => {
-        snapshot.forEach(doc => {
-          const n = doc.data();
-          const lang = n.language[currentLang];
-          if (!lang) return;
-
-          newsDiv.innerHTML += `
-            <div class="card">
-              <div class="content">
-                <h3>${lang.headline}</h3>
-                <p>${lang.summary}</p>
-
-                ${
-                  isLoggedIn
-                    ? `<p><strong>${lang.content}</strong></p>`
-                    : `<button onclick="showLogin()">Read Full News</button>`
-                }
-
-                <div class="meta">${n.category} • ${n.source}</div>
-              </div>
-            </div>
-          `;
-        });
-      });
-  }
-
-  function showLogin() {
-    const loginBox = document.getElementById("loginSection");
-    loginBox.style.display = "block";
-    loginBox.scrollIntoView({ behavior: "smooth" });
-  }
-
+auth.onAuthStateChanged(u=>{
+  loggedIn=!!u;
+  closeModal();
   loadNews();
+});
+
+function sendOTP(){
+  const phone=document.getElementById("phone").value;
+  auth.signInWithPhoneNumber(phone,window.recaptchaVerifier)
+  .then(r=>{
+    window.confirmationResult=r;
+    document.getElementById("otpBox").style.display="block";
+  }).catch(alert);
+}
+
+function verifyOTP(){
+  confirmationResult.confirm(document.getElementById("otp").value)
+  .catch(alert);
+}
+
+function logout(){auth.signOut();}
+
+/* NEWS */
+function setLang(l){lang=l;localStorage.setItem("lang",l);loadNews();}
+
+function loadNews(){
+  const box=document.getElementById("newsList");
+  box.innerHTML="";
+  db.collection("news").orderBy("createdAt","desc").limit(10).get()
+  .then(s=>{
+    s.forEach(d=>{
+      const n=d.data();
+      const t=n.language[lang];
+      if(!t)return;
+      box.innerHTML+=`
+      <div class="card">
+        <div class="content">
+          <h3>${t.headline}</h3>
+          <p>${t.summary}</p>
+          ${
+            loggedIn
+            ? `<p><strong>${t.content}</strong></p>`
+            : `<button onclick="openModal()">Read Full News</button>`
+          }
+          <div class="meta">${n.category} • ${n.source}</div>
+        </div>
+      </div>`;
+    });
+  });
+}
+
+/* MODAL CONTROL */
+function openModal(){
+  document.getElementById("loginModal").style.display="block";
+}
+function closeModal(){
+  document.getElementById("loginModal").style.display="none";
+}
+
+loadNews();
 </script>
 
 </body>
