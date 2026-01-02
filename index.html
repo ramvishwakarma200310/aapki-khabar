@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,41 +11,92 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#f4f4f4;}
-header{background:#d32f2f;color:#fff;padding:15px;text-align:center;}
-button{padding:8px 12px;border:none;border-radius:5px;cursor:pointer;}
-.news{padding:15px;}
-.card{background:#fff;margin-bottom:15px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,.1);}
-.content{padding:12px;}
-.meta{font-size:12px;color:#777;margin-top:6px}
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f4f4f4;
+}
 
-/* MODAL */
-.modal{
+/* HEADER */
+header{
+  background:#d32f2f;
+  color:#fff;
+  text-align:center;
+  padding:16px;
+}
+header h2{margin:0;}
+.lang-buttons button{
+  margin:6px;
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+/* NEWS CARD */
+.news{padding:15px;}
+.card{
+  background:#fff;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);
+}
+.card h3{margin:0 0 8px;}
+.card p{color:#444;}
+.meta{font-size:12px;color:#777;}
+.read-btn{
+  margin-top:10px;
+  background:#d32f2f;
+  color:#fff;
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+/* OVERLAY */
+.overlay{
   display:none;
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.6);
-  z-index:999;
+  background:rgba(0,0,0,.5);
+  z-index:998;
 }
-.modal-box{
+
+/* BOTTOM SHEET */
+.sheet{
+  position:fixed;
+  left:0; right:0;
+  bottom:-100%;
   background:#fff;
-  width:90%;
-  max-width:400px;
-  margin:20% auto;
+  border-radius:16px 16px 0 0;
   padding:20px;
-  border-radius:8px;
+  z-index:999;
+  transition:.3s ease;
 }
-input{
+.sheet.active{bottom:0;}
+.sheet-handle{
+  width:40px;height:4px;
+  background:#ccc;
+  margin:0 auto 10px;
+  border-radius:4px;
+}
+.sheet input{
   width:100%;
-  padding:10px;
+  padding:12px;
   margin:8px 0;
-  border-radius:5px;
+  border-radius:8px;
   border:1px solid #ccc;
 }
-.close{
-  float:right;
-  font-size:18px;
-  cursor:pointer;
+.primary{
+  width:100%;
+  padding:12px;
+  background:#d32f2f;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  font-size:16px;
 }
 </style>
 </head>
@@ -53,109 +104,119 @@ input{
 <body>
 
 <header>
-<h2>🗞️ Aapki Khabar</h2>
-<p>समझने वाली खबरें • Easy to Understand News</p>
-<button onclick="setLang('hi')">हिंदी</button>
-<button onclick="setLang('en')">English</button>
-<button onclick="logout()">Logout</button>
+  <h2>🗞️ Aapki Khabar</h2>
+  <p>समझने वाली खबरें · Easy to Understand News</p>
+  <div class="lang-buttons">
+    <button onclick="setLang('hi')">हिंदी</button>
+    <button onclick="setLang('en')">English</button>
+    <button onclick="logout()">Logout</button>
+  </div>
 </header>
 
-<!-- LOGIN MODAL -->
-<div class="modal" id="loginModal">
-  <div class="modal-box">
-    <span class="close" onclick="closeModal()">✖</span>
-    <h3>Login to continue</h3>
+<!-- NEWS -->
+<div class="news" id="newsList">Loading news...</div>
 
-    <input id="phone" placeholder="+91XXXXXXXXXX">
-    <button onclick="sendOTP()">Send OTP</button>
+<!-- LOGIN POPUP -->
+<div id="loginOverlay" class="overlay" onclick="closeSheet()"></div>
 
-    <div id="otpBox" style="display:none">
-      <input id="otp" placeholder="Enter OTP">
-      <button onclick="verifyOTP()">Verify OTP</button>
-    </div>
+<div id="loginSheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <h3>Login to read full news</h3>
 
-    <div id="recaptcha-container"></div>
+  <input id="phone" placeholder="+91XXXXXXXXXX">
+  <button class="primary" onclick="sendOTP()">Send OTP</button>
+
+  <div id="otpBox" style="display:none">
+    <input id="otp" placeholder="Enter OTP">
+    <button class="primary" onclick="verifyOTP()">Verify OTP</button>
   </div>
+
+  <div id="recaptcha-container"></div>
 </div>
 
-<div class="news" id="newsList">Loading...</div>
-
 <script>
-/* FIREBASE */
+/* FIREBASE CONFIG */
 firebase.initializeApp({
-  apiKey:"AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
-  authDomain:"aapki-khabar-171e9.firebaseapp.com",
-  projectId:"aapki-khabar-171e9"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "aapki-khabar-171e9.firebaseapp.com",
+  projectId: "aapki-khabar-171e9"
 });
 
-const db=firebase.firestore();
-const auth=firebase.auth();
+const db = firebase.firestore();
+const auth = firebase.auth();
 
-let lang=localStorage.getItem("lang")||"hi";
-let loggedIn=false;
+let currentLang = "en";
+let loggedIn = false;
+let confirmationResult;
+
+/* LANGUAGE */
+function setLang(l){
+  currentLang=l;
+  loadNews();
+}
+
+/* LOGIN UI */
+function openModal(){
+  document.getElementById("loginOverlay").style.display="block";
+  document.getElementById("loginSheet").classList.add("active");
+}
+function closeSheet(){
+  document.getElementById("loginOverlay").style.display="none";
+  document.getElementById("loginSheet").classList.remove("active");
+}
 
 /* AUTH */
-window.recaptchaVerifier=new firebase.auth.RecaptchaVerifier(
-"recaptcha-container",{size:"invisible"}
-);
-
-auth.onAuthStateChanged(u=>{
-  loggedIn=!!u;
-  closeModal();
-  loadNews();
-});
+window.onload = ()=>{
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
+    "recaptcha-container",{size:"invisible"}
+  );
+};
 
 function sendOTP(){
   const phone=document.getElementById("phone").value;
-  auth.signInWithPhoneNumber(phone,window.recaptchaVerifier)
-  .then(r=>{
-    window.confirmationResult=r;
+  auth.signInWithPhoneNumber(phone,recaptchaVerifier)
+  .then(res=>{
+    confirmationResult=res;
     document.getElementById("otpBox").style.display="block";
-  }).catch(alert);
-}
-
-function verifyOTP(){
-  confirmationResult.confirm(document.getElementById("otp").value)
-  .catch(alert);
-}
-
-function logout(){auth.signOut();}
-
-/* NEWS */
-function setLang(l){lang=l;localStorage.setItem("lang",l);loadNews();}
-
-function loadNews(){
-  const box=document.getElementById("newsList");
-  box.innerHTML="";
-  db.collection("news").orderBy("createdAt","desc").limit(10).get()
-  .then(s=>{
-    s.forEach(d=>{
-      const n=d.data();
-      const t=n.language[lang];
-      if(!t)return;
-      box.innerHTML+=`
-      <div class="card">
-        <div class="content">
-          <h3>${t.headline}</h3>
-          <p>${t.summary}</p>
-          ${
-            loggedIn
-            ? `<p><strong>${t.content}</strong></p>`
-            : `<button onclick="openModal()">Read Full News</button>`
-          }
-          <div class="meta">${n.category} • ${n.source}</div>
-        </div>
-      </div>`;
-    });
   });
 }
 
-/* MODAL CONTROL */
-function openModal(){
-  document.getElementById("loginModal").style.display="block";
+function verifyOTP(){
+  const otp=document.getElementById("otp").value;
+  confirmationResult.confirm(otp).then(()=>{
+    loggedIn=true;
+    closeSheet();
+    loadNews();
+  });
 }
-function closeModal(){
-  document.getElementById("loginModal").style.display="none";
+
+function logout(){
+  auth.signOut();
+  loggedIn=false;
+  loadNews();
+}
+
+/* NEWS */
+function loadNews(){
+  db.collection("news").orderBy("createdAt","desc").onSnapshot(snap=>{
+    const box=document.getElementById("newsList");
+    box.innerHTML="";
+    snap.forEach(doc=>{
+      const n=doc.data();
+      const lang=n.language[currentLang];
+
+      box.innerHTML+=`
+      <div class="card">
+        <h3>${lang.headline}</h3>
+        <p>${lang.summary}</p>
+        <button class="read-btn"
+          onclick="${loggedIn ? `alert('${lang.content.replace(/'/g,"")}')` : 'openModal()'}">
+          Read Full News
+        </button>
+        <div class="meta">${n.category} · ${n.source}</div>
+      </div>`;
+    });
+  });
 }
 
 loadNews();
