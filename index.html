@@ -12,43 +12,21 @@
 <style>
 body{margin:0;font-family:Arial;background:#f4f4f4}
 header{background:#d32f2f;color:#fff;padding:15px;text-align:center}
+.lang-btns button{margin:5px;padding:8px 16px;border-radius:20px;border:none;cursor:pointer}
+.lang-btns .active{background:#fff;color:#d32f2f}
 
-.lang-btns button{
-  padding:8px 14px;border:none;border-radius:20px;
-  margin:5px;cursor:pointer
-}
-.lang-btns .active{
-  background:#fff;color:#d32f2f;font-weight:bold
-}
+.categories{display:flex;overflow-x:auto;padding:10px;background:#fff}
+.categories button{flex:0 0 auto;margin-right:8px;padding:8px 14px;border-radius:20px;border:none;background:#eee}
+.categories .active{background:#d32f2f;color:#fff}
 
-.category-bar{
-  display:flex;gap:10px;overflow-x:auto;
-  padding:10px;background:#fff
-}
-.category-bar button{
-  padding:8px 14px;border:none;border-radius:20px;
-  background:#eee;cursor:pointer;flex-shrink:0
-}
-.category-bar .active{
-  background:#d32f2f;color:#fff
-}
+#newsList{padding:12px}
+.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;box-shadow:0 2px 5px rgba(0,0,0,.1)}
+.card h2{margin:0 0 8px}
+.meta{font-size:12px;color:#777;margin-top:8px}
+.read-btn{margin-top:10px;padding:8px 12px;border:none;border-radius:6px;background:#d32f2f;color:#fff}
+.full-content{display:none;margin-top:10px;color:#333}
 
-.news{padding:15px}
-.card{
-  background:#fff;padding:15px;border-radius:8px;
-  margin-bottom:15px;box-shadow:0 2px 5px rgba(0,0,0,.1)
-}
-.meta{font-size:12px;color:#777;margin:8px 0}
-.read-btn{
-  background:#d32f2f;color:#fff;border:none;
-  padding:8px 12px;border-radius:5px;cursor:pointer
-}
-.full-content{display:none;margin-top:10px}
-
-.ad-box{
-  background:#eee;text-align:center;
-  padding:20px;border-radius:8px;margin-bottom:15px
-}
+.ad-box{background:#fff3cd;padding:15px;border-radius:8px;margin:15px 0;text-align:center;font-weight:bold}
 </style>
 </head>
 
@@ -57,26 +35,18 @@ header{background:#d32f2f;color:#fff;padding:15px;text-align:center}
 <header>
   <h2>🗞️ Aapki Khabar</h2>
   <p>समझने वाली खबरें · Easy to Understand News</p>
-
   <div class="lang-btns">
-    <button id="hiBtn" class="active" onclick="setLang('hi')">हिंदी</button>
-    <button id="enBtn" onclick="setLang('en')">English</button>
+    <button onclick="setLang('hi')" id="btn-hi">हिंदी</button>
+    <button onclick="setLang('en')" id="btn-en" class="active">English</button>
   </div>
 </header>
 
-<!-- SLIDING CATEGORIES -->
-<div class="category-bar">
-  <button id="cat-All" class="active" onclick="setCategory('All')">All</button>
-  <button id="cat-Finance" onclick="setCategory('Finance')">Finance</button>
-  <button id="cat-Government" onclick="setCategory('Government')">Government</button>
-  <button id="cat-Court & Law" onclick="setCategory('Court & Law')">Court & Law</button>
-  <button id="cat-World" onclick="setCategory('World')">World</button>
-</div>
+<div class="categories" id="catBar"></div>
 
-<div class="news" id="newsList">Loading news…</div>
+<div id="newsList">Loading news…</div>
 
 <script>
-/* FIREBASE INIT */
+/* 🔥 FIREBASE CONFIG */
 firebase.initializeApp({
   apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
   authDomain: "aapki-khabar-171e9.firebaseapp.com",
@@ -85,118 +55,100 @@ firebase.initializeApp({
 const db = firebase.firestore();
 
 /* STATE */
-let currentLang = "hi";
+let currentLang = "en";
 let currentCategory = "All";
-let autoTimer = null;
 
-/* 🔑 CATEGORY NORMALIZATION (FINAL FIX) */
-function normalizeCategory(cat){
-  if(!cat) return "Other";
-  cat = cat.toLowerCase();
+/* CATEGORIES (LOCKED) */
+const categories = [
+  "All",
+  "Finance",
+  "Government",
+  "World",
+  "Court & Law",
+  "Sports",
+  "Climate"
+];
 
-  if(cat.includes("business") || cat.includes("rbi") || cat.includes("finance"))
-    return "Finance";
-
-  if(cat.includes("government") || cat.includes("govt") || cat.includes("scheme"))
-    return "Government";
-
-  if(cat.includes("court") || cat.includes("law") || cat.includes("judgement"))
-    return "Court & Law";
-
-  if(cat.includes("world") || cat.includes("international"))
-    return "World";
-
-  return "Other";
-}
+/* INIT CATEGORY BAR */
+const catBar = document.getElementById("catBar");
+categories.forEach(cat=>{
+  const b=document.createElement("button");
+  b.innerText=cat;
+  if(cat==="All") b.classList.add("active");
+  b.onclick=()=>{
+    document.querySelectorAll(".categories button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    currentCategory=cat;
+    loadNews();
+  };
+  catBar.appendChild(b);
+});
 
 /* LANGUAGE SWITCH */
 function setLang(lang){
-  currentLang = lang;
-  hiBtn.classList.remove("active");
-  enBtn.classList.remove("active");
-  document.getElementById(lang+"Btn").classList.add("active");
-  loadNews();
-}
-
-/* CATEGORY SWITCH */
-function setCategory(cat){
-  currentCategory = cat;
-  document.querySelectorAll(".category-bar button")
-    .forEach(b => b.classList.remove("active"));
-  document.getElementById("cat-"+cat)?.classList.add("active");
+  currentLang=lang;
+  document.getElementById("btn-hi").classList.toggle("active",lang==="hi");
+  document.getElementById("btn-en").classList.toggle("active",lang==="en");
   loadNews();
 }
 
 /* LOAD NEWS */
 function loadNews(){
-  const box = document.getElementById("newsList");
-  box.innerHTML = "Loading news…";
+  const container=document.getElementById("newsList");
+  container.innerHTML="Loading news…";
 
-  db.collection("news")
-    .orderBy("createdAt","desc")
-    .get()
-    .then(snapshot=>{
-      box.innerHTML = "";
-      let shown = 0;
-      let count = 0;
+  db.collection("news").orderBy("createdAt","desc").get()
+  .then(snapshot=>{
+    container.innerHTML="";
+    let count=0,shown=0;
 
-      snapshot.forEach(doc=>{
-        const n = doc.data();
-        const uiCat = normalizeCategory(n.category);
+    snapshot.forEach(doc=>{
+      const n=doc.data();
 
-        if(currentCategory !== "All" && uiCat !== currentCategory) return;
+      if(currentCategory!=="All" && n.category!==currentCategory) return;
 
-        const d = n.language && n.language[currentLang];
-        if(!d) return;
+      const lang=n.language?.[currentLang];
+      if(!lang) return;
 
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <h3>${d.headline}</h3>
-          <p>${d.summary}</p>
-          <div class="meta">${uiCat} • ${n.source || ""}</div>
-          <button class="read-btn">Read Full News</button>
-          <div class="full-content">${d.content}</div>
-        `;
+      shown++;
+      count++;
 
-        const btn = card.querySelector(".read-btn");
-        const full = card.querySelector(".full-content");
-        btn.onclick = () => {
-          full.style.display =
-            full.style.display === "block" ? "none" : "block";
-        };
+      const card=document.createElement("div");
+      card.className="card";
+      card.innerHTML=`
+        <h2>${lang.headline}</h2>
+        <p>${lang.summary}</p>
+        <button class="read-btn">Read Full News</button>
+        <div class="full-content">${lang.content}</div>
+        <div class="meta">${n.category} • ${n.source}</div>
+      `;
 
-        box.appendChild(card);
-        shown++;
-        count++;
+      const btn=card.querySelector(".read-btn");
+      const full=card.querySelector(".full-content");
+      btn.onclick=()=>full.style.display=full.style.display==="block"?"none":"block";
 
-        /* AD AFTER EVERY 2 NEWS */
-        if(count % 2 === 0){
-          const ad = document.createElement("div");
-          ad.className = "ad-box";
-          ad.innerText = "Advertisement";
-          box.appendChild(ad);
-        }
-      });
+      container.appendChild(card);
 
-      if(shown === 0){
-        box.innerHTML = "No news available in this category.";
+      if(count%2===0){
+        const ad=document.createElement("div");
+        ad.className="ad-box";
+        ad.innerText="Advertisement";
+        container.appendChild(ad);
       }
-    })
-    .catch(()=>{
-      box.innerHTML = "Error loading news.";
     });
+
+    if(shown===0){
+      container.innerHTML="<p style='padding:15px'>No news available.</p>";
+    }
+  })
+  .catch(()=>{
+    container.innerHTML="Error loading news.";
+  });
 }
 
-/* AUTO UPDATE EVERY 10 MINUTES */
-function startAutoUpdate(){
-  if(autoTimer) clearInterval(autoTimer);
-  autoTimer = setInterval(loadNews, 10 * 60 * 1000);
-}
-
-/* INIT */
+/* AUTO REFRESH – 10 MIN */
 loadNews();
-startAutoUpdate();
+setInterval(loadNews,600000);
 </script>
 
 </body>
