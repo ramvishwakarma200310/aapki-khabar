@@ -14,9 +14,12 @@ body{margin:0;font-family:Arial;background:#f4f4f4}
 header{background:#d32f2f;color:#fff;padding:15px;text-align:center}
 
 .lang-btns button{
-  padding:8px 14px;border:none;border-radius:20px;margin:5px;cursor:pointer
+  padding:8px 14px;border:none;border-radius:20px;
+  margin:5px;cursor:pointer
 }
-.lang-btns .active{background:#fff;color:#d32f2f;font-weight:bold}
+.lang-btns .active{
+  background:#fff;color:#d32f2f;font-weight:bold
+}
 
 .category-bar{
   display:flex;gap:10px;overflow-x:auto;
@@ -66,14 +69,14 @@ header{background:#d32f2f;color:#fff;padding:15px;text-align:center}
   <button id="cat-All" class="active" onclick="setCategory('All')">All</button>
   <button id="cat-Finance" onclick="setCategory('Finance')">Finance</button>
   <button id="cat-Government" onclick="setCategory('Government')">Government</button>
-  <button id="cat-Court" onclick="setCategory('Court')">Court & Law</button>
+  <button id="cat-Court & Law" onclick="setCategory('Court & Law')">Court & Law</button>
   <button id="cat-World" onclick="setCategory('World')">World</button>
 </div>
 
 <div class="news" id="newsList">Loading news…</div>
 
 <script>
-/* 🔥 FIREBASE INIT */
+/* FIREBASE INIT */
 firebase.initializeApp({
   apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
   authDomain: "aapki-khabar-171e9.firebaseapp.com",
@@ -84,16 +87,29 @@ const db = firebase.firestore();
 /* STATE */
 let currentLang = "hi";
 let currentCategory = "All";
-let autoRefreshTimer = null;
+let autoTimer = null;
 
-/* CATEGORY NORMALIZATION */
+/* 🔑 CATEGORY NORMALIZATION (FINAL FIX) */
 function normalizeCategory(cat){
-  if(["Business","RBI","Finance"].includes(cat)) return "Finance";
-  if(["Government","Govt"].includes(cat)) return "Government";
-  return cat;
+  if(!cat) return "Other";
+  cat = cat.toLowerCase();
+
+  if(cat.includes("business") || cat.includes("rbi") || cat.includes("finance"))
+    return "Finance";
+
+  if(cat.includes("government") || cat.includes("govt") || cat.includes("scheme"))
+    return "Government";
+
+  if(cat.includes("court") || cat.includes("law") || cat.includes("judgement"))
+    return "Court & Law";
+
+  if(cat.includes("world") || cat.includes("international"))
+    return "World";
+
+  return "Other";
 }
 
-/* LANGUAGE */
+/* LANGUAGE SWITCH */
 function setLang(lang){
   currentLang = lang;
   hiBtn.classList.remove("active");
@@ -102,7 +118,7 @@ function setLang(lang){
   loadNews();
 }
 
-/* CATEGORY */
+/* CATEGORY SWITCH */
 function setCategory(cat){
   currentCategory = cat;
   document.querySelectorAll(".category-bar button")
@@ -113,14 +129,14 @@ function setCategory(cat){
 
 /* LOAD NEWS */
 function loadNews(){
-  const container = document.getElementById("newsList");
-  container.innerHTML = "Loading news…";
+  const box = document.getElementById("newsList");
+  box.innerHTML = "Loading news…";
 
   db.collection("news")
     .orderBy("createdAt","desc")
     .get()
     .then(snapshot=>{
-      container.innerHTML="";
+      box.innerHTML = "";
       let shown = 0;
       let count = 0;
 
@@ -128,9 +144,9 @@ function loadNews(){
         const n = doc.data();
         const uiCat = normalizeCategory(n.category);
 
-        if(currentCategory!=="All" && uiCat!==currentCategory) return;
+        if(currentCategory !== "All" && uiCat !== currentCategory) return;
 
-        const d = n.language?.[currentLang];
+        const d = n.language && n.language[currentLang];
         if(!d) return;
 
         const card = document.createElement("div");
@@ -138,7 +154,7 @@ function loadNews(){
         card.innerHTML = `
           <h3>${d.headline}</h3>
           <p>${d.summary}</p>
-          <div class="meta">${uiCat} • ${n.source}</div>
+          <div class="meta">${uiCat} • ${n.source || ""}</div>
           <button class="read-btn">Read Full News</button>
           <div class="full-content">${d.content}</div>
         `;
@@ -146,10 +162,11 @@ function loadNews(){
         const btn = card.querySelector(".read-btn");
         const full = card.querySelector(".full-content");
         btn.onclick = () => {
-          full.style.display = full.style.display==="block"?"none":"block";
+          full.style.display =
+            full.style.display === "block" ? "none" : "block";
         };
 
-        container.appendChild(card);
+        box.appendChild(card);
         shown++;
         count++;
 
@@ -158,26 +175,23 @@ function loadNews(){
           const ad = document.createElement("div");
           ad.className = "ad-box";
           ad.innerText = "Advertisement";
-          container.appendChild(ad);
+          box.appendChild(ad);
         }
       });
 
       if(shown === 0){
-        container.innerHTML = "No news available in this category.";
+        box.innerHTML = "No news available in this category.";
       }
     })
     .catch(()=>{
-      container.innerHTML = "Error loading news.";
+      box.innerHTML = "Error loading news.";
     });
 }
 
-/* 🔁 AUTO UPDATE EVERY 10 MINUTES */
+/* AUTO UPDATE EVERY 10 MINUTES */
 function startAutoUpdate(){
-  if(autoRefreshTimer) clearInterval(autoRefreshTimer);
-  autoRefreshTimer = setInterval(()=>{
-    console.log("Auto refreshing news...");
-    loadNews();
-  }, 10 * 60 * 1000); // 10 minutes
+  if(autoTimer) clearInterval(autoTimer);
+  autoTimer = setInterval(loadNews, 10 * 60 * 1000);
 }
 
 /* INIT */
