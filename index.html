@@ -27,6 +27,13 @@ header{background:#d32f2f;color:#fff;padding:15px;text-align:center}
 .full-content{display:none;margin-top:10px;color:#333}
 
 .ad-box{background:#fff3cd;padding:15px;border-radius:8px;margin:15px 0;text-align:center;font-weight:bold}
+
+.last-updated{
+  font-size:12px;
+  color:#555;
+  text-align:center;
+  margin:8px 0;
+}
 </style>
 </head>
 
@@ -43,6 +50,8 @@ header{background:#d32f2f;color:#fff;padding:15px;text-align:center}
 
 <div class="categories" id="catBar"></div>
 
+<div class="last-updated" id="lastUpdated">Last updated: --</div>
+
 <div id="newsList">Loading news…</div>
 
 <script>
@@ -57,6 +66,7 @@ const db = firebase.firestore();
 /* STATE */
 let currentLang = "en";
 let currentCategory = "All";
+let unsubscribe = null;
 
 /* CATEGORIES (LOCKED) */
 const categories = [
@@ -79,7 +89,7 @@ categories.forEach(cat=>{
     document.querySelectorAll(".categories button").forEach(x=>x.classList.remove("active"));
     b.classList.add("active");
     currentCategory=cat;
-    loadNews();
+    loadNewsLive();
   };
   catBar.appendChild(b);
 });
@@ -89,66 +99,70 @@ function setLang(lang){
   currentLang=lang;
   document.getElementById("btn-hi").classList.toggle("active",lang==="hi");
   document.getElementById("btn-en").classList.toggle("active",lang==="en");
-  loadNews();
+  loadNewsLive();
 }
 
-/* LOAD NEWS */
-function loadNews(){
+/* LOAD NEWS (LIVE) */
+function loadNewsLive(){
   const container=document.getElementById("newsList");
   container.innerHTML="Loading news…";
 
-  db.collection("news").orderBy("createdAt","desc").get()
-  .then(snapshot=>{
-    container.innerHTML="";
-    let count=0,shown=0;
+  if(unsubscribe) unsubscribe();
 
-    snapshot.forEach(doc=>{
-      const n=doc.data();
+  unsubscribe = db.collection("news")
+    .orderBy("createdAt","desc")
+    .onSnapshot(snapshot=>{
+      container.innerHTML="";
+      let count=0,shown=0;
 
-      if(currentCategory!=="All" && n.category!==currentCategory) return;
+      snapshot.forEach(doc=>{
+        const n=doc.data();
 
-      const lang=n.language?.[currentLang];
-      if(!lang) return;
+        if(currentCategory!=="All" && n.category!==currentCategory) return;
 
-      shown++;
-      count++;
+        const lang=n.language?.[currentLang];
+        if(!lang) return;
 
-      const card=document.createElement("div");
-      card.className="card";
-      card.innerHTML=`
-        <h2>${lang.headline}</h2>
-        <p>${lang.summary}</p>
-        <button class="read-btn">Read Full News</button>
-        <div class="full-content">${lang.content}</div>
-        <div class="meta">${n.category} • ${n.source}</div>
-      `;
+        shown++; count++;
 
-      const btn=card.querySelector(".read-btn");
-      const full=card.querySelector(".full-content");
-      btn.onclick=()=>full.style.display=full.style.display==="block"?"none":"block";
+        const card=document.createElement("div");
+        card.className="card";
+        card.innerHTML=`
+          <h2>${lang.headline}</h2>
+          <p>${lang.summary}</p>
+          <button class="read-btn">Read Full News</button>
+          <div class="full-content">${lang.content}</div>
+          <div class="meta">${n.category} • ${n.source}</div>
+        `;
 
-      container.appendChild(card);
+        const btn=card.querySelector(".read-btn");
+        const full=card.querySelector(".full-content");
+        btn.onclick=()=>full.style.display=full.style.display==="block"?"none":"block";
 
-      if(count%2===0){
-        const ad=document.createElement("div");
-        ad.className="ad-box";
-        ad.innerText="Advertisement";
-        container.appendChild(ad);
+        container.appendChild(card);
+
+        if(count%2===0){
+          const ad=document.createElement("div");
+          ad.className="ad-box";
+          ad.innerText="Advertisement";
+          container.appendChild(ad);
+        }
+      });
+
+      if(shown===0){
+        container.innerHTML="<p style='padding:15px'>No news available.</p>";
       }
-    });
 
-    if(shown===0){
-      container.innerHTML="<p style='padding:15px'>No news available.</p>";
-    }
-  })
-  .catch(()=>{
-    container.innerHTML="Error loading news.";
-  });
+      document.getElementById("lastUpdated").innerText =
+        "Last updated: " + new Date().toLocaleTimeString();
+    });
 }
 
-/* AUTO REFRESH – 10 MIN */
-loadNews();
-setInterval(loadNews,600000);
+/* AUTO REFRESH BACKUP – 10 MIN */
+setInterval(loadNewsLive,600000);
+
+/* INIT */
+loadNewsLive();
 </script>
 
 </body>
