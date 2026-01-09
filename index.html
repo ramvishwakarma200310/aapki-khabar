@@ -1,90 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Aapki Khabar</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aapki Khabar</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-    }
+<style>
+body{margin:0;font-family:Arial;background:#f4f4f4}
+header{background:#d32f2f;color:#fff;padding:15px;text-align:center}
 
-    header {
-      background: #d32f2f;
-      color: #fff;
-      padding: 15px;
-      text-align: center;
-    }
+.lang-btns button{
+  padding:8px 14px;border:none;border-radius:20px;margin:5px;cursor:pointer
+}
+.lang-btns .active{background:#fff;color:#d32f2f;font-weight:bold}
 
-    .lang-btns button,
-    .cat-btns button {
-      margin: 5px;
-      padding: 8px 14px;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-    }
+.category-bar{
+  display:flex;gap:10px;overflow-x:auto;
+  padding:10px;background:#fff
+}
+.category-bar button{
+  padding:8px 14px;border:none;border-radius:20px;
+  background:#eee;cursor:pointer;flex-shrink:0
+}
+.category-bar .active{
+  background:#d32f2f;color:#fff
+}
 
-    .active {
-      background: #d32f2f;
-      color: #fff;
-    }
+.news{padding:15px}
+.card{
+  background:#fff;padding:15px;border-radius:8px;
+  margin-bottom:15px;box-shadow:0 2px 5px rgba(0,0,0,.1)
+}
+.meta{font-size:12px;color:#777;margin:8px 0}
+.read-btn{
+  background:#d32f2f;color:#fff;border:none;
+  padding:8px 12px;border-radius:5px;cursor:pointer
+}
+.full-content{display:none;margin-top:10px}
 
-    .news {
-      padding: 15px;
-    }
-
-    .card {
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    .card h2 {
-      margin: 0 0 10px;
-      font-size: 18px;
-    }
-
-    .meta {
-      font-size: 12px;
-      color: #777;
-      margin: 8px 0;
-    }
-
-    .read-btn {
-      background: #d32f2f;
-      color: #fff;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .full-content {
-      display: none;
-      margin-top: 10px;
-      color: #333;
-    }
-
-    .ad-box {
-      background: #eee;
-      text-align: center;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      color: #555;
-      font-weight: bold;
-    }
-  </style>
+.ad-box{
+  background:#eee;text-align:center;
+  padding:20px;border-radius:8px;margin-bottom:15px
+}
+</style>
 </head>
 
 <body>
@@ -94,115 +56,133 @@
   <p>समझने वाली खबरें · Easy to Understand News</p>
 
   <div class="lang-btns">
-    <button onclick="setLang('hi')" id="hiBtn" class="active">हिंदी</button>
-    <button onclick="setLang('en')" id="enBtn">English</button>
+    <button id="hiBtn" class="active" onclick="setLang('hi')">हिंदी</button>
+    <button id="enBtn" onclick="setLang('en')">English</button>
   </div>
 </header>
 
-<div class="cat-btns" style="padding:10px;text-align:center;">
-  <button onclick="setCategory('All')" class="active" id="cat-All">All</button>
-  <button onclick="setCategory('Finance')" id="cat-Finance">Finance</button>
-  <button onclick="setCategory('Government')" id="cat-Government">Government</button>
-  <button onclick="setCategory('Court & Law')" id="cat-Court & Law">Court & Law</button>
-  <button onclick="setCategory('World')" id="cat-World">World</button>
+<!-- SLIDING CATEGORIES -->
+<div class="category-bar">
+  <button id="cat-All" class="active" onclick="setCategory('All')">All</button>
+  <button id="cat-Finance" onclick="setCategory('Finance')">Finance</button>
+  <button id="cat-Government" onclick="setCategory('Government')">Government</button>
+  <button id="cat-Court" onclick="setCategory('Court')">Court & Law</button>
+  <button id="cat-World" onclick="setCategory('World')">World</button>
 </div>
 
 <div class="news" id="newsList">Loading news…</div>
 
 <script>
-  // 🔥 Firebase config (your project)
-  const firebaseConfig = {
-    apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
-    authDomain: "aapki-khabar-171e9.firebaseapp.com",
-    projectId: "aapki-khabar-171e9",
-  };
+/* 🔥 FIREBASE INIT */
+firebase.initializeApp({
+  apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
+  authDomain: "aapki-khabar-171e9.firebaseapp.com",
+  projectId: "aapki-khabar-171e9"
+});
+const db = firebase.firestore();
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+/* STATE */
+let currentLang = "hi";
+let currentCategory = "All";
+let autoRefreshTimer = null;
 
-  let currentLang = "hi";
-  let currentCategory = "All";
+/* CATEGORY NORMALIZATION */
+function normalizeCategory(cat){
+  if(["Business","RBI","Finance"].includes(cat)) return "Finance";
+  if(["Government","Govt"].includes(cat)) return "Government";
+  return cat;
+}
 
-  function setLang(lang) {
-    currentLang = lang;
-    document.getElementById("hiBtn").classList.remove("active");
-    document.getElementById("enBtn").classList.remove("active");
-    document.getElementById(lang + "Btn").classList.add("active");
-    loadNews();
-  }
-
-  function setCategory(cat) {
-    currentCategory = cat;
-    document.querySelectorAll(".cat-btns button").forEach(b => b.classList.remove("active"));
-    document.getElementById("cat-" + cat).classList.add("active");
-    loadNews();
-  }
-
-  // ✅ YOUR PROVIDED FUNCTION (INTEGRATED)
-  function loadNews() {
-    const container = document.getElementById("newsList");
-    container.innerHTML = "Loading news…";
-
-    db.collection("news")
-      .orderBy("createdAt", "desc")
-      .get()
-      .then(snapshot => {
-        container.innerHTML = "";
-        let count = 0;
-
-        snapshot.forEach(doc => {
-          const n = doc.data();
-
-          // CATEGORY FILTER (JS SIDE)
-          if (currentCategory !== "All" && n.category !== currentCategory) {
-            return;
-          }
-
-          const langData = n.language?.[currentLang];
-          if (!langData) return;
-
-          const card = document.createElement("div");
-          card.className = "card";
-
-          card.innerHTML = `
-            <h2>${langData.headline}</h2>
-            <p>${langData.summary}</p>
-            <div class="meta">${n.category} • ${n.source}</div>
-            <button class="read-btn">Read Full News</button>
-            <div class="full-content">${langData.content}</div>
-          `;
-
-          const btn = card.querySelector(".read-btn");
-          const full = card.querySelector(".full-content");
-          btn.onclick = () => {
-            full.style.display =
-              full.style.display === "block" ? "none" : "block";
-          };
-
-          container.appendChild(card);
-          count++;
-
-          // AD AFTER EVERY 2 NEWS
-          if (count % 2 === 0) {
-            const ad = document.createElement("div");
-            ad.className = "ad-box";
-            ad.innerText = "Advertisement";
-            container.appendChild(ad);
-          }
-        });
-
-        if (container.innerHTML === "") {
-          container.innerHTML = "No news available in this category.";
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        container.innerHTML = "Error loading news.";
-      });
-  }
-
-  // Initial load
+/* LANGUAGE */
+function setLang(lang){
+  currentLang = lang;
+  hiBtn.classList.remove("active");
+  enBtn.classList.remove("active");
+  document.getElementById(lang+"Btn").classList.add("active");
   loadNews();
+}
+
+/* CATEGORY */
+function setCategory(cat){
+  currentCategory = cat;
+  document.querySelectorAll(".category-bar button")
+    .forEach(b => b.classList.remove("active"));
+  document.getElementById("cat-"+cat)?.classList.add("active");
+  loadNews();
+}
+
+/* LOAD NEWS */
+function loadNews(){
+  const container = document.getElementById("newsList");
+  container.innerHTML = "Loading news…";
+
+  db.collection("news")
+    .orderBy("createdAt","desc")
+    .get()
+    .then(snapshot=>{
+      container.innerHTML="";
+      let shown = 0;
+      let count = 0;
+
+      snapshot.forEach(doc=>{
+        const n = doc.data();
+        const uiCat = normalizeCategory(n.category);
+
+        if(currentCategory!=="All" && uiCat!==currentCategory) return;
+
+        const d = n.language?.[currentLang];
+        if(!d) return;
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <h3>${d.headline}</h3>
+          <p>${d.summary}</p>
+          <div class="meta">${uiCat} • ${n.source}</div>
+          <button class="read-btn">Read Full News</button>
+          <div class="full-content">${d.content}</div>
+        `;
+
+        const btn = card.querySelector(".read-btn");
+        const full = card.querySelector(".full-content");
+        btn.onclick = () => {
+          full.style.display = full.style.display==="block"?"none":"block";
+        };
+
+        container.appendChild(card);
+        shown++;
+        count++;
+
+        /* AD AFTER EVERY 2 NEWS */
+        if(count % 2 === 0){
+          const ad = document.createElement("div");
+          ad.className = "ad-box";
+          ad.innerText = "Advertisement";
+          container.appendChild(ad);
+        }
+      });
+
+      if(shown === 0){
+        container.innerHTML = "No news available in this category.";
+      }
+    })
+    .catch(()=>{
+      container.innerHTML = "Error loading news.";
+    });
+}
+
+/* 🔁 AUTO UPDATE EVERY 10 MINUTES */
+function startAutoUpdate(){
+  if(autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(()=>{
+    console.log("Auto refreshing news...");
+    loadNews();
+  }, 10 * 60 * 1000); // 10 minutes
+}
+
+/* INIT */
+loadNews();
+startAutoUpdate();
 </script>
 
 </body>
