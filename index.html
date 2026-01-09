@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aapki Khabar – Easy News</title>
 
 <!-- Firebase -->
@@ -34,7 +34,6 @@ header p {
   opacity: 0.9;
 }
 
-/* Language buttons */
 .lang-buttons button,
 .category-bar button {
   border: none;
@@ -109,7 +108,7 @@ header p {
   line-height: 1.5;
 }
 
-/* Ads */
+/* Ad placeholder */
 .ad-box {
   background: #fafafa;
   border: 1px dashed #ccc;
@@ -136,14 +135,14 @@ header p {
 </header>
 
 <!-- CATEGORY FILTER -->
-<div class="category-bar" id="categoryBar">
-  <button class="active" onclick="setCategory('All')">All</button>
-  <button onclick="setCategory('Finance')">Finance</button>
-  <button onclick="setCategory('Government')">Government</button>
-  <button onclick="setCategory('Court')">Court</button>
-  <button onclick="setCategory('Sports')">Sports</button>
-  <button onclick="setCategory('Climate')">Climate</button>
-  <button onclick="setCategory('IT')">IT</button>
+<div class="category-bar">
+  <button class="active" onclick="setCategory('All', this)">All</button>
+  <button onclick="setCategory('Finance', this)">Finance</button>
+  <button onclick="setCategory('Government', this)">Government</button>
+  <button onclick="setCategory('Court & Law', this)">Court & Law</button>
+  <button onclick="setCategory('World', this)">World</button>
+  <button onclick="setCategory('Sports', this)">Sports</button>
+  <button onclick="setCategory('Climate', this)">Climate</button>
 </div>
 
 <div class="container" id="newsList">
@@ -177,11 +176,11 @@ function switchLang(lang) {
 }
 
 /* ================= CATEGORY SWITCH ================= */
-function setCategory(cat) {
+function setCategory(cat, btn) {
   currentCategory = cat;
   document.querySelectorAll(".category-bar button")
     .forEach(b => b.classList.remove("active"));
-  event.target.classList.add("active");
+  btn.classList.add("active");
   loadNews();
 }
 
@@ -190,58 +189,59 @@ function loadNews() {
   const container = document.getElementById("newsList");
   container.innerHTML = "Loading news…";
 
-  db.collection("news")
-    .orderBy("createdAt", "desc")
-    .get()
-    .then(snapshot => {
-      container.innerHTML = "";
-      let count = 0;
+  let query = db.collection("news").orderBy("createdAt", "desc");
 
-      snapshot.forEach(doc => {
-        const n = doc.data();
-        if (currentCategory !== "All" && n.category !== currentCategory) return;
+  if (currentCategory !== "All") {
+    query = query.where("category", "==", currentCategory);
+  }
 
-        const langData = n.language?.[currentLang];
-        if (!langData) return;
+  query.get().then(snapshot => {
+    container.innerHTML = "";
+    let count = 0;
 
-        const card = document.createElement("div");
-        card.className = "card";
+    snapshot.forEach(doc => {
+      const n = doc.data();
+      const langData = n.language?.[currentLang];
+      if (!langData) return;
 
-        card.innerHTML = `
-          <h2>${langData.headline}</h2>
-          <p>${langData.summary}</p>
-          <div class="meta">${n.category} • ${n.source}</div>
-          <button class="read-btn">Read Full News</button>
-          <div class="full-content">${langData.content}</div>
-        `;
+      const card = document.createElement("div");
+      card.className = "card";
 
-        const btn = card.querySelector(".read-btn");
-        const full = card.querySelector(".full-content");
-        btn.onclick = () => {
-          full.style.display = full.style.display === "block" ? "none" : "block";
-        };
+      card.innerHTML = `
+        <h2>${langData.headline}</h2>
+        <p>${langData.summary}</p>
+        <div class="meta">${n.category} • ${n.source}</div>
+        <button class="read-btn">Read Full News</button>
+        <div class="full-content">${langData.content}</div>
+      `;
 
-        container.appendChild(card);
-        count++;
+      const btn = card.querySelector(".read-btn");
+      const full = card.querySelector(".full-content");
+      btn.onclick = () => {
+        full.style.display = full.style.display === "block" ? "none" : "block";
+      };
 
-        /* Ad after every 2 news */
-        if (count % 2 === 0) {
-          const ad = document.createElement("div");
-          ad.className = "ad-box";
-          ad.innerText = "Advertisement";
-          container.appendChild(ad);
-        }
-      });
+      container.appendChild(card);
+      count++;
 
-      if (container.innerHTML === "") {
-        container.innerHTML = "No news available in this category.";
+      /* Ad after every 2 news */
+      if (count % 2 === 0) {
+        const ad = document.createElement("div");
+        ad.className = "ad-box";
+        ad.innerText = "Advertisement";
+        container.appendChild(ad);
       }
     });
+
+    if (container.innerHTML === "") {
+      container.innerHTML = "No news available in this category.";
+    }
+  });
 }
 
 /* ================= AUTO REFRESH ================= */
 loadNews();
-setInterval(loadNews, 10 * 60 * 1000); // every 10 minutes
+setInterval(loadNews, 10 * 60 * 1000); // 10 minutes
 </script>
 
 </body>
