@@ -1,247 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aapki Khabar – Easy News</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aapki Khabar</title>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<style>
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f3f3f3;
-}
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+    }
 
-header {
-  background: #d32f2f;
-  color: #fff;
-  text-align: center;
-  padding: 16px;
-}
+    header {
+      background: #d32f2f;
+      color: #fff;
+      padding: 15px;
+      text-align: center;
+    }
 
-header h1 {
-  margin: 0;
-  font-size: 22px;
-}
+    .lang-btns button,
+    .cat-btns button {
+      margin: 5px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+    }
 
-header p {
-  margin: 6px 0 10px;
-  font-size: 14px;
-  opacity: 0.9;
-}
+    .active {
+      background: #d32f2f;
+      color: #fff;
+    }
 
-.lang-buttons button,
-.category-bar button {
-  border: none;
-  padding: 8px 12px;
-  margin: 4px;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: 13px;
-}
+    .news {
+      padding: 15px;
+    }
 
-.lang-buttons .active,
-.category-bar .active {
-  background: #d32f2f;
-  color: #fff;
-}
+    .card {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
 
-/* Category bar */
-.category-bar {
-  overflow-x: auto;
-  white-space: nowrap;
-  padding: 10px;
-  background: #fff;
-}
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
 
-/* Container */
-.container {
-  padding: 14px;
-  max-width: 700px;
-  margin: auto;
-}
+    .meta {
+      font-size: 12px;
+      color: #777;
+      margin: 8px 0;
+    }
 
-.card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
+    .read-btn {
+      background: #d32f2f;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
 
-.card h2 {
-  margin: 0 0 8px;
-  font-size: 18px;
-}
+    .full-content {
+      display: none;
+      margin-top: 10px;
+      color: #333;
+    }
 
-.card p {
-  margin: 0 0 10px;
-  color: #444;
-  line-height: 1.4;
-}
-
-.meta {
-  font-size: 12px;
-  color: #777;
-  margin-bottom: 8px;
-}
-
-.read-btn {
-  background: #d32f2f;
-  color: #fff;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.full-content {
-  display: none;
-  margin-top: 10px;
-  border-top: 1px solid #eee;
-  padding-top: 10px;
-  color: #333;
-  line-height: 1.5;
-}
-
-/* Ad placeholder */
-.ad-box {
-  background: #fafafa;
-  border: 1px dashed #ccc;
-  padding: 16px;
-  text-align: center;
-  font-size: 14px;
-  color: #666;
-  margin: 18px 0;
-  border-radius: 8px;
-}
-</style>
+    .ad-box {
+      background: #eee;
+      text-align: center;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      color: #555;
+      font-weight: bold;
+    }
+  </style>
 </head>
 
 <body>
 
 <header>
-  <h1>🗞️ Aapki Khabar</h1>
+  <h2>🗞️ Aapki Khabar</h2>
   <p>समझने वाली खबरें · Easy to Understand News</p>
 
-  <div class="lang-buttons">
-    <button id="btn-hi" class="active">हिंदी</button>
-    <button id="btn-en">English</button>
+  <div class="lang-btns">
+    <button onclick="setLang('hi')" id="hiBtn" class="active">हिंदी</button>
+    <button onclick="setLang('en')" id="enBtn">English</button>
   </div>
 </header>
 
-<!-- CATEGORY FILTER -->
-<div class="category-bar">
-  <button class="active" onclick="setCategory('All', this)">All</button>
-  <button onclick="setCategory('Finance', this)">Finance</button>
-  <button onclick="setCategory('Government', this)">Government</button>
-  <button onclick="setCategory('Court & Law', this)">Court & Law</button>
-  <button onclick="setCategory('World', this)">World</button>
-  <button onclick="setCategory('Sports', this)">Sports</button>
-  <button onclick="setCategory('Climate', this)">Climate</button>
+<div class="cat-btns" style="padding:10px;text-align:center;">
+  <button onclick="setCategory('All')" class="active" id="cat-All">All</button>
+  <button onclick="setCategory('Finance')" id="cat-Finance">Finance</button>
+  <button onclick="setCategory('Government')" id="cat-Government">Government</button>
+  <button onclick="setCategory('Court & Law')" id="cat-Court & Law">Court & Law</button>
+  <button onclick="setCategory('World')" id="cat-World">World</button>
 </div>
 
-<div class="container" id="newsList">
-  Loading news…
-</div>
+<div class="news" id="newsList">Loading news…</div>
 
 <script>
-/* ================= FIREBASE CONFIG ================= */
-const firebaseConfig = {
-  apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
-  authDomain: "aapki-khabar-171e9.firebaseapp.com",
-  projectId: "aapki-khabar-171e9"
-};
+  // 🔥 Firebase config (your project)
+  const firebaseConfig = {
+    apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
+    authDomain: "aapki-khabar-171e9.firebaseapp.com",
+    projectId: "aapki-khabar-171e9",
+  };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-/* ================= STATE ================= */
-let currentLang = "hi";
-let currentCategory = "All";
+  let currentLang = "hi";
+  let currentCategory = "All";
 
-/* ================= LANGUAGE SWITCH ================= */
-document.getElementById("btn-hi").onclick = () => switchLang("hi");
-document.getElementById("btn-en").onclick = () => switchLang("en");
-
-function switchLang(lang) {
-  currentLang = lang;
-  document.getElementById("btn-hi").classList.toggle("active", lang === "hi");
-  document.getElementById("btn-en").classList.toggle("active", lang === "en");
-  loadNews();
-}
-
-/* ================= CATEGORY SWITCH ================= */
-function setCategory(cat, btn) {
-  currentCategory = cat;
-  document.querySelectorAll(".category-bar button")
-    .forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  loadNews();
-}
-
-/* ================= LOAD NEWS ================= */
-function loadNews() {
-  const container = document.getElementById("newsList");
-  container.innerHTML = "Loading news…";
-
-  let query = db.collection("news").orderBy("createdAt", "desc");
-
-  if (currentCategory !== "All") {
-    query = query.where("category", "==", currentCategory);
+  function setLang(lang) {
+    currentLang = lang;
+    document.getElementById("hiBtn").classList.remove("active");
+    document.getElementById("enBtn").classList.remove("active");
+    document.getElementById(lang + "Btn").classList.add("active");
+    loadNews();
   }
 
-  query.get().then(snapshot => {
-    container.innerHTML = "";
-    let count = 0;
+  function setCategory(cat) {
+    currentCategory = cat;
+    document.querySelectorAll(".cat-btns button").forEach(b => b.classList.remove("active"));
+    document.getElementById("cat-" + cat).classList.add("active");
+    loadNews();
+  }
 
-    snapshot.forEach(doc => {
-      const n = doc.data();
-      const langData = n.language?.[currentLang];
-      if (!langData) return;
+  // ✅ YOUR PROVIDED FUNCTION (INTEGRATED)
+  function loadNews() {
+    const container = document.getElementById("newsList");
+    container.innerHTML = "Loading news…";
 
-      const card = document.createElement("div");
-      card.className = "card";
+    db.collection("news")
+      .orderBy("createdAt", "desc")
+      .get()
+      .then(snapshot => {
+        container.innerHTML = "";
+        let count = 0;
 
-      card.innerHTML = `
-        <h2>${langData.headline}</h2>
-        <p>${langData.summary}</p>
-        <div class="meta">${n.category} • ${n.source}</div>
-        <button class="read-btn">Read Full News</button>
-        <div class="full-content">${langData.content}</div>
-      `;
+        snapshot.forEach(doc => {
+          const n = doc.data();
 
-      const btn = card.querySelector(".read-btn");
-      const full = card.querySelector(".full-content");
-      btn.onclick = () => {
-        full.style.display = full.style.display === "block" ? "none" : "block";
-      };
+          // CATEGORY FILTER (JS SIDE)
+          if (currentCategory !== "All" && n.category !== currentCategory) {
+            return;
+          }
 
-      container.appendChild(card);
-      count++;
+          const langData = n.language?.[currentLang];
+          if (!langData) return;
 
-      /* Ad after every 2 news */
-      if (count % 2 === 0) {
-        const ad = document.createElement("div");
-        ad.className = "ad-box";
-        ad.innerText = "Advertisement";
-        container.appendChild(ad);
-      }
-    });
+          const card = document.createElement("div");
+          card.className = "card";
 
-    if (container.innerHTML === "") {
-      container.innerHTML = "No news available in this category.";
-    }
-  });
-}
+          card.innerHTML = `
+            <h2>${langData.headline}</h2>
+            <p>${langData.summary}</p>
+            <div class="meta">${n.category} • ${n.source}</div>
+            <button class="read-btn">Read Full News</button>
+            <div class="full-content">${langData.content}</div>
+          `;
 
-/* ================= AUTO REFRESH ================= */
-loadNews();
-setInterval(loadNews, 10 * 60 * 1000); // 10 minutes
+          const btn = card.querySelector(".read-btn");
+          const full = card.querySelector(".full-content");
+          btn.onclick = () => {
+            full.style.display =
+              full.style.display === "block" ? "none" : "block";
+          };
+
+          container.appendChild(card);
+          count++;
+
+          // AD AFTER EVERY 2 NEWS
+          if (count % 2 === 0) {
+            const ad = document.createElement("div");
+            ad.className = "ad-box";
+            ad.innerText = "Advertisement";
+            container.appendChild(ad);
+          }
+        });
+
+        if (container.innerHTML === "") {
+          container.innerHTML = "No news available in this category.";
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        container.innerHTML = "Error loading news.";
+      });
+  }
+
+  // Initial load
+  loadNews();
 </script>
 
 </body>
