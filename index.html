@@ -29,25 +29,37 @@ header h1 {
 }
 
 header p {
-  margin: 6px 0 12px;
+  margin: 6px 0 10px;
   font-size: 14px;
   opacity: 0.9;
 }
 
-.lang-buttons button {
+/* Language buttons */
+.lang-buttons button,
+.category-bar button {
   border: none;
-  padding: 8px 14px;
-  margin: 0 4px;
-  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 4px;
+  border-radius: 20px;
   cursor: pointer;
-  font-weight: 600;
+  font-size: 13px;
 }
 
-.lang-buttons .active {
+.lang-buttons .active,
+.category-bar .active {
+  background: #d32f2f;
+  color: #fff;
+}
+
+/* Category bar */
+.category-bar {
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 10px;
   background: #fff;
-  color: #d32f2f;
 }
 
+/* Container */
 .container {
   padding: 14px;
   max-width: 700px;
@@ -97,7 +109,7 @@ header p {
   line-height: 1.5;
 }
 
-/* Ad placeholder */
+/* Ads */
 .ad-box {
   background: #fafafa;
   border: 1px dashed #ccc;
@@ -116,11 +128,25 @@ header p {
 <header>
   <h1>🗞️ Aapki Khabar</h1>
   <p>समझने वाली खबरें · Easy to Understand News</p>
+
   <div class="lang-buttons">
     <button id="btn-hi" class="active">हिंदी</button>
     <button id="btn-en">English</button>
   </div>
 </header>
+
+<!-- CATEGORY FILTER -->
+<div class="category-bar" id="categoryBar">
+  <button class="active" onclick="setCategory('All')">All</button>
+  <button onclick="setCategory('Business')">Business</button>
+  <button onclick="setCategory('Finance')">Finance</button>
+  <button onclick="setCategory('Government')">Government</button>
+  <button onclick="setCategory('RBI')">RBI</button>
+  <button onclick="setCategory('Court')">Court</button>
+  <button onclick="setCategory('Sports')">Sports</button>
+  <button onclick="setCategory('Climate')">Climate</button>
+  <button onclick="setCategory('IT')">IT</button>
+</div>
 
 <div class="container" id="newsList">
   Loading news…
@@ -139,6 +165,7 @@ const db = firebase.firestore();
 
 /* ================= STATE ================= */
 let currentLang = "hi";
+let currentCategory = "All";
 
 /* ================= LANGUAGE SWITCH ================= */
 document.getElementById("btn-hi").onclick = () => switchLang("hi");
@@ -148,6 +175,15 @@ function switchLang(lang) {
   currentLang = lang;
   document.getElementById("btn-hi").classList.toggle("active", lang === "hi");
   document.getElementById("btn-en").classList.toggle("active", lang === "en");
+  loadNews();
+}
+
+/* ================= CATEGORY SWITCH ================= */
+function setCategory(cat) {
+  currentCategory = cat;
+  document.querySelectorAll(".category-bar button")
+    .forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
   loadNews();
 }
 
@@ -165,6 +201,8 @@ function loadNews() {
 
       snapshot.forEach(doc => {
         const n = doc.data();
+        if (currentCategory !== "All" && n.category !== currentCategory) return;
+
         const langData = n.language?.[currentLang];
         if (!langData) return;
 
@@ -188,7 +226,7 @@ function loadNews() {
         container.appendChild(card);
         count++;
 
-        /* Insert Ad after every 2 news */
+        /* Ad after every 2 news */
         if (count % 2 === 0) {
           const ad = document.createElement("div");
           ad.className = "ad-box";
@@ -196,12 +234,16 @@ function loadNews() {
           container.appendChild(ad);
         }
       });
+
+      if (container.innerHTML === "") {
+        container.innerHTML = "No news available in this category.";
+      }
     });
 }
 
 /* ================= AUTO REFRESH ================= */
 loadNews();
-setInterval(loadNews, 10 * 60 * 1000); // 10 minutes
+setInterval(loadNews, 10 * 60 * 1000); // every 10 minutes
 </script>
 
 </body>
