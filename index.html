@@ -1,168 +1,337 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aapki Khabar</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aapki Khabar</title>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-<style>
-body{margin:0;font-family:Arial;background:#f4f4f4}
-header{background:#d32f2f;color:#fff;padding:15px;text-align:center}
-.lang-btns button{margin:5px;padding:8px 16px;border-radius:20px;border:none;cursor:pointer}
-.lang-btns .active{background:#fff;color:#d32f2f}
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
+    header { background: #d32f2f; color: #fff; padding: 18px 12px; text-align: center; }
+    header h2 { margin: 0; font-size: 26px; }
+    header p { margin: 6px 0 0; opacity: 0.95; }
 
-.categories{display:flex;overflow-x:auto;padding:10px;background:#fff}
-.categories button{flex:0 0 auto;margin-right:8px;padding:8px 14px;border-radius:20px;border:none;background:#eee}
-.categories .active{background:#d32f2f;color:#fff}
+    .lang-row{
+      display: flex; gap: 12px; justify-content:center; margin-top: 14px;
+    }
+    .lang-btn{
+      border: none; border-radius: 999px; padding: 10px 18px;
+      font-size: 15px; cursor: pointer; font-weight: 700;
+      background: rgba(255,255,255,0.12); color: #fff;
+      outline: 2px solid rgba(255,255,255,0.25);
+    }
+    .lang-btn.active{ background:#fff; color:#d32f2f; outline: none; }
 
-#newsList{padding:12px}
-.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;box-shadow:0 2px 5px rgba(0,0,0,.1)}
-.card h2{margin:0 0 8px}
-.meta{font-size:12px;color:#777;margin-top:8px}
-.read-btn{margin-top:10px;padding:8px 12px;border:none;border-radius:6px;background:#d32f2f;color:#fff}
-.full-content{display:none;margin-top:10px;color:#333}
+    /* Categories chips row */
+    .cats-wrap{
+      background: #fff;
+      padding: 10px 10px 6px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .cats{
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      padding: 6px 6px 10px;
+      scrollbar-width: none;
+    }
+    .cats::-webkit-scrollbar{ display:none; }
+    .chip{
+      border: none;
+      padding: 10px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+      background: #f1f1f1;
+      color: #111;
+    }
+    .chip.active{
+      background: #d32f2f;
+      color: #fff;
+    }
 
-.ad-box{background:#fff3cd;padding:15px;border-radius:8px;margin:15px 0;text-align:center;font-weight:bold}
+    .meta-bar{
+      text-align:center;
+      padding: 6px 10px 10px;
+      font-size: 13px;
+      color:#666;
+    }
 
-.last-updated{
-  font-size:12px;
-  color:#555;
-  text-align:center;
-  margin:8px 0;
-}
-</style>
+    .news { padding: 14px 12px 40px; }
+
+    .card {
+      background: #fff;
+      margin-bottom: 14px;
+      border-radius: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .card h3 { margin: 14px 14px 6px; font-size: 20px; line-height: 1.25; }
+    .card p { margin: 0 14px 10px; color: #444; line-height: 1.5; font-size: 15px; }
+    .meta { font-size: 13px; color: #777; margin: 0 14px 14px; }
+
+    .btn-row{
+      display:flex;
+      gap:10px;
+      padding: 0 14px 14px;
+      align-items:center;
+      justify-content:flex-start;
+    }
+    .read-btn{
+      background:#d32f2f;
+      color:#fff;
+      border:none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 800;
+      cursor:pointer;
+    }
+    .full-content{
+      display:none;
+      padding: 0 14px 14px;
+      margin-top: -6px;
+      color:#222;
+      font-size: 15px;
+      line-height: 1.6;
+      border-top: 1px solid #eee;
+      padding-top: 12px;
+    }
+
+    /* Ads box */
+    .ad-box{
+      background: #fff;
+      border: 2px dashed rgba(0,0,0,0.18);
+      border-radius: 14px;
+      padding: 16px;
+      margin: 14px 0;
+      text-align:center;
+      color:#333;
+      font-weight: 800;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .ad-box small{
+      display:block;
+      margin-top: 6px;
+      font-weight: 600;
+      color:#666;
+    }
+
+    .empty{
+      background:#fff;
+      border-radius: 14px;
+      padding: 16px;
+      text-align:center;
+      color:#444;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+  </style>
 </head>
 
 <body>
 
 <header>
   <h2>🗞️ Aapki Khabar</h2>
-  <p>समझने वाली खबरें · Easy to Understand News</p>
-  <div class="lang-btns">
-    <button onclick="setLang('hi')" id="btn-hi">हिंदी</button>
-    <button onclick="setLang('en')" id="btn-en" class="active">English</button>
+  <p>समझने वाली खबरें • Easy to Understand News</p>
+
+  <div class="lang-row">
+    <button class="lang-btn active" id="btnHi">हिंदी</button>
+    <button class="lang-btn" id="btnEn">English</button>
   </div>
 </header>
 
-<div class="categories" id="catBar"></div>
+<div class="cats-wrap">
+  <div class="cats" id="catsRow">
+    <!-- chips inserted by JS -->
+  </div>
+  <div class="meta-bar" id="lastUpdated">Last updated: --:--</div>
+</div>
 
-<div class="last-updated" id="lastUpdated">Last updated: --</div>
-
-<div id="newsList">Loading news…</div>
+<div class="news" id="newsList">
+  Loading news...
+</div>
 
 <script>
-/* 🔥 FIREBASE CONFIG */
-firebase.initializeApp({
-  apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
-  authDomain: "aapki-khabar-171e9.firebaseapp.com",
-  projectId: "aapki-khabar-171e9"
-});
-const db = firebase.firestore();
-
-/* STATE */
-let currentLang = "en";
-let currentCategory = "All";
-let unsubscribe = null;
-
-/* CATEGORIES (LOCKED) */
-const categories = [
-  "All",
-  "Finance",
-  "Government",
-  "World",
-  "Court & Law",
-  "Sports",
-  "Climate"
-];
-
-/* INIT CATEGORY BAR */
-const catBar = document.getElementById("catBar");
-categories.forEach(cat=>{
-  const b=document.createElement("button");
-  b.innerText=cat;
-  if(cat==="All") b.classList.add("active");
-  b.onclick=()=>{
-    document.querySelectorAll(".categories button").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active");
-    currentCategory=cat;
-    loadNewsLive();
+  // ✅ Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDyFelhS-cksx0vKkKwllROaf-qXXYoIDM",
+    authDomain: "aapki-khabar-171e9.firebaseapp.com",
+    projectId: "aapki-khabar-171e9"
   };
-  catBar.appendChild(b);
-});
 
-/* LANGUAGE SWITCH */
-function setLang(lang){
-  currentLang=lang;
-  document.getElementById("btn-hi").classList.toggle("active",lang==="hi");
-  document.getElementById("btn-en").classList.toggle("active",lang==="en");
-  loadNewsLive();
-}
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-/* LOAD NEWS (LIVE) */
-function loadNewsLive(){
-  const container=document.getElementById("newsList");
-  container.innerHTML="Loading news…";
+  // ✅ categories list (fixed name)
+  const CATEGORIES = [
+    "All",
+    "Finance",
+    "Government",
+    "World",
+    "Court & Law",
+    "Sports",
+    "Climate"
+  ];
 
-  if(unsubscribe) unsubscribe();
+  let currentCategory = "All";
+  let currentLang = "hi";
 
-  unsubscribe = db.collection("news")
-    .orderBy("createdAt","desc")
-    .onSnapshot(snapshot=>{
-      container.innerHTML="";
-      let count=0,shown=0;
+  // Auto refresh
+  const AUTO_REFRESH_MS = 10 * 60 * 1000; // 10 minutes
+  let refreshTimer = null;
 
-      snapshot.forEach(doc=>{
-        const n=doc.data();
+  function formatTime(d){
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    const ss = String(d.getSeconds()).padStart(2,'0');
+    return `${hh}:${mm}:${ss}`;
+  }
 
-        if(currentCategory!=="All" && n.category!==currentCategory) return;
+  function setLastUpdated(){
+    document.getElementById("lastUpdated").innerText =
+      "Last updated: " + formatTime(new Date());
+  }
 
-        const lang=n.language?.[currentLang];
-        if(!lang) return;
+  function renderCategoryChips(){
+    const row = document.getElementById("catsRow");
+    row.innerHTML = "";
 
-        shown++; count++;
+    CATEGORIES.forEach(cat => {
+      const btn = document.createElement("button");
+      btn.className = "chip" + (cat === currentCategory ? " active" : "");
+      btn.innerText = cat;
 
-        const card=document.createElement("div");
-        card.className="card";
-        card.innerHTML=`
-          <h2>${lang.headline}</h2>
-          <p>${lang.summary}</p>
-          <button class="read-btn">Read Full News</button>
-          <div class="full-content">${lang.content}</div>
-          <div class="meta">${n.category} • ${n.source}</div>
-        `;
+      btn.onclick = () => {
+        currentCategory = cat;
 
-        const btn=card.querySelector(".read-btn");
-        const full=card.querySelector(".full-content");
-        btn.onclick=()=>full.style.display=full.style.display==="block"?"none":"block";
+        // update active chip UI
+        [...row.children].forEach(c => c.classList.remove("active"));
+        btn.classList.add("active");
 
-        container.appendChild(card);
+        // load news again
+        loadNews();
+      };
 
-        if(count%2===0){
-          const ad=document.createElement("div");
-          ad.className="ad-box";
-          ad.innerText="Advertisement";
-          container.appendChild(ad);
-        }
-      });
-
-      if(shown===0){
-        container.innerHTML="<p style='padding:15px'>No news available.</p>";
-      }
-
-      document.getElementById("lastUpdated").innerText =
-        "Last updated: " + new Date().toLocaleTimeString();
+      row.appendChild(btn);
     });
-}
+  }
 
-/* AUTO REFRESH BACKUP – 10 MIN */
-setInterval(loadNewsLive,600000);
+  function setLangUI(){
+    const btnHi = document.getElementById("btnHi");
+    const btnEn = document.getElementById("btnEn");
 
-/* INIT */
-loadNewsLive();
+    if(currentLang === "hi"){
+      btnHi.classList.add("active");
+      btnEn.classList.remove("active");
+    }else{
+      btnEn.classList.add("active");
+      btnHi.classList.remove("active");
+    }
+  }
+
+  document.getElementById("btnHi").onclick = () => {
+    currentLang = "hi";
+    setLangUI();
+    loadNews();
+  };
+
+  document.getElementById("btnEn").onclick = () => {
+    currentLang = "en";
+    setLangUI();
+    loadNews();
+  };
+
+  // ✅ MAIN function: load news (auto refresh compatible)
+  function loadNews(){
+    const container = document.getElementById("newsList");
+    container.innerHTML = "Loading news...";
+
+    db.collection("news")
+      .orderBy("createdAt", "desc")
+      .get()
+      .then(snapshot => {
+        container.innerHTML = "";
+        let countNews = 0;
+
+        snapshot.forEach(doc => {
+          const n = doc.data();
+
+          // Filter by category
+          if(currentCategory !== "All" && n.category !== currentCategory){
+            return;
+          }
+
+          const langData = n.language && n.language[currentLang];
+          if(!langData) return;
+
+          const card = document.createElement("div");
+          card.className = "card";
+
+          card.innerHTML = `
+            <h3>${langData.headline || ""}</h3>
+            <p>${langData.summary || ""}</p>
+            <div class="btn-row">
+              <button class="read-btn">Read Full News</button>
+            </div>
+            <div class="full-content">${(langData.content || "").replace(/\n/g, "<br/>")}</div>
+            <div class="meta">${n.category || ""} • ${n.source || ""}</div>
+          `;
+
+          const btn = card.querySelector(".read-btn");
+          const full = card.querySelector(".full-content");
+          btn.onclick = () => {
+            full.style.display = (full.style.display === "block") ? "none" : "block";
+            btn.innerText = (full.style.display === "block") ? "Hide Full News" : "Read Full News";
+          };
+
+          container.appendChild(card);
+          countNews++;
+
+          // ✅ Ad after every 2 news
+          if(countNews % 2 === 0){
+            const ad = document.createElement("div");
+            ad.className = "ad-box";
+            ad.innerHTML = `
+              Advertisement
+              <small>Ads will appear here (earning model)</small>
+            `;
+            container.appendChild(ad);
+          }
+        });
+
+        if(container.innerHTML.trim() === ""){
+          container.innerHTML = `<div class="empty">No news available.</div>`;
+        }
+
+        setLastUpdated();
+      })
+      .catch(err => {
+        console.error(err);
+        container.innerHTML = `<div class="empty">Error loading news.</div>`;
+      });
+  }
+
+  // ✅ Auto refresh setup
+  function startAutoRefresh(){
+    if(refreshTimer) clearInterval(refreshTimer);
+
+    refreshTimer = setInterval(() => {
+      loadNews();
+    }, AUTO_REFRESH_MS);
+  }
+
+  // INIT
+  renderCategoryChips();
+  setLangUI();
+  loadNews();
+  startAutoRefresh();
 </script>
 
 </body>
