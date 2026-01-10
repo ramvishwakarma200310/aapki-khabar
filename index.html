@@ -1,14 +1,16 @@
 <!DOCTYPE html>
-<html lang="hi" translate="no">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
+
+  <!-- ✅ Responsive -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <!-- ✅ Stop Chrome/Google auto-translate -->
-  <meta name="google" content="notranslate">
-  <meta http-equiv="Content-Language" content="hi">
-
   <title>Aapki Khabar</title>
+
+  <!-- ✅ PWA REQUIRED (YOU ASKED TO ADD THIS) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#d32f2f">
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -16,151 +18,129 @@
 
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
+    header { background: #d32f2f; color: #fff; padding: 15px; text-align: center; }
+    .news { padding: 15px; }
 
-    /* ✅ extra support */
-    .notranslate { translate: no; }
-
-    header { background: #d32f2f; color: #fff; padding: 18px 12px; text-align: center; }
-    header h2 { margin: 0; font-size: 26px; }
-    header p { margin: 6px 0 0; opacity: 0.95; }
-
-    .lang-row{
-      display: flex; gap: 12px; justify-content:center; margin-top: 14px;
+    .lang-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 10px;
     }
-    .lang-btn{
-      border: none; border-radius: 999px; padding: 10px 18px;
-      font-size: 15px; cursor: pointer; font-weight: 700;
-      background: rgba(255,255,255,0.12); color: #fff;
-      outline: 2px solid rgba(255,255,255,0.25);
+    .lang-btns button {
+      border: 2px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 22px;
+      font-size: 16px;
+      cursor: pointer;
     }
-    .lang-btn.active{ background:#fff; color:#d32f2f; outline: none; }
-
-    /* Categories chips row */
-    .cats-wrap{
+    .lang-btns button.active {
       background: #fff;
-      padding: 10px 10px 6px;
+      color: #d32f2f;
+      font-weight: bold;
+    }
+
+    .category-bar {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 12px;
+      background: #fff;
+      border-bottom: 1px solid #eee;
       position: sticky;
       top: 0;
-      z-index: 10;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      z-index: 20;
     }
-    .cats{
-      display: flex;
-      overflow-x: auto;
-      gap: 10px;
-      padding: 6px 6px 10px;
-      scrollbar-width: none;
-    }
-    .cats::-webkit-scrollbar{ display:none; }
-    .chip{
-      border: none;
+    .category-bar::-webkit-scrollbar { display: none; }
+
+    .cat-btn {
       padding: 10px 16px;
-      border-radius: 999px;
+      border-radius: 25px;
+      border: none;
+      background: #eee;
+      color: #333;
       cursor: pointer;
-      font-weight: 700;
       white-space: nowrap;
-      background: #f1f1f1;
-      color: #111;
+      font-weight: 600;
     }
-    .chip.active{
+    .cat-btn.active {
       background: #d32f2f;
       color: #fff;
     }
 
-    .meta-bar{
-      text-align:center;
-      padding: 6px 10px 10px;
-      font-size: 13px;
-      color:#666;
-    }
-
-    .news { padding: 14px 12px 40px; }
-
     .card {
       background: #fff;
-      margin-bottom: 14px;
-      border-radius: 14px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       overflow: hidden;
+      padding: 15px;
     }
-    .card h3 { margin: 14px 14px 6px; font-size: 20px; line-height: 1.25; }
-    .card p { margin: 0 14px 10px; color: #444; line-height: 1.5; font-size: 15px; }
-    .meta { font-size: 13px; color: #777; margin: 0 14px 14px; }
-
-    .btn-row{
-      display:flex;
-      gap:10px;
-      padding: 0 14px 14px;
-      align-items:center;
-      justify-content:flex-start;
+    .card h2 { margin: 0 0 10px; font-size: 20px; }
+    .card p { margin: 0 0 10px; color: #444; line-height: 1.5; }
+    .meta {
+      font-size: 12px;
+      color: #777;
+      margin-top: 8px;
     }
-    .read-btn{
-      background:#d32f2f;
-      color:#fff;
-      border:none;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-weight: 800;
-      cursor:pointer;
+    .read-btn {
+      background: #d32f2f;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+      font-weight: 700;
     }
-    .full-content{
-      display:none;
-      padding: 0 14px 14px;
-      margin-top: -6px;
-      color:#222;
-      font-size: 15px;
-      line-height: 1.6;
-      border-top: 1px solid #eee;
+    .full-content {
+      display: none;
+      margin-top: 12px;
       padding-top: 12px;
+      border-top: 1px solid #eee;
+      color: #222;
+      white-space: pre-line;
+      line-height: 1.6;
     }
 
-    /* Ads box */
-    .ad-box{
+    .ad-box {
       background: #fff;
-      border: 2px dashed rgba(0,0,0,0.18);
-      border-radius: 14px;
-      padding: 16px;
-      margin: 14px 0;
-      text-align:center;
-      color:#333;
-      font-weight: 800;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-    .ad-box small{
-      display:block;
-      margin-top: 6px;
-      font-weight: 600;
-      color:#666;
+      border: 2px dashed #ccc;
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      margin: 12px 0;
+      color: #666;
+      font-weight: 700;
     }
 
-    .empty{
-      background:#fff;
-      border-radius: 14px;
-      padding: 16px;
-      text-align:center;
-      color:#444;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    .last-updated {
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      padding: 10px 0;
     }
   </style>
 </head>
 
 <body>
 
-<!-- ✅ Header part will NOT translate now -->
-<header class="notranslate" translate="no">
+<header>
   <h2>🗞️ Aapki Khabar</h2>
   <p>समझने वाली खबरें • Easy to Understand News</p>
 
-  <div class="lang-row">
-    <button class="lang-btn active" id="btnHi">हिंदी</button>
-    <button class="lang-btn" id="btnEn">English</button>
+  <div class="lang-btns">
+    <button id="btnHindi" class="active">हिंदी</button>
+    <button id="btnEnglish">English</button>
   </div>
 </header>
 
-<div class="cats-wrap">
-  <div class="cats" id="catsRow"></div>
-  <div class="meta-bar" id="lastUpdated">Last updated: --:--</div>
-</div>
+<!-- ✅ Categories -->
+<div class="category-bar" id="categoryBar"></div>
+
+<div class="last-updated" id="lastUpdated"></div>
 
 <div class="news" id="newsList">
   Loading news...
@@ -177,8 +157,13 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // ✅ categories list
-  const CATEGORIES = [
+  // ✅ Settings
+  let currentLang = "hi";
+  let currentCategory = "All";
+  const AUTO_REFRESH_TIME = 10 * 60 * 1000; // 10 minutes
+
+  // ✅ Categories required
+  const categories = [
     "All",
     "Finance",
     "Government",
@@ -188,150 +173,128 @@
     "Climate"
   ];
 
-  let currentCategory = "All";
-  let currentLang = "hi";
+  // ✅ Build category buttons
+  const categoryBar = document.getElementById("categoryBar");
+  categories.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "cat-btn" + (cat === "All" ? " active" : "");
+    btn.innerText = cat;
+    btn.onclick = () => {
+      document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentCategory = cat;
+      loadNews();
+    };
+    categoryBar.appendChild(btn);
+  });
 
-  // Auto refresh
-  const AUTO_REFRESH_MS = 10 * 60 * 1000; // 10 minutes
-  let refreshTimer = null;
+  // ✅ Language buttons
+  const btnHindi = document.getElementById("btnHindi");
+  const btnEnglish = document.getElementById("btnEnglish");
 
-  function formatTime(d){
-    const hh = String(d.getHours()).padStart(2,'0');
-    const mm = String(d.getMinutes()).padStart(2,'0');
-    const ss = String(d.getSeconds()).padStart(2,'0');
-    return `${hh}:${mm}:${ss}`;
-  }
-
-  function setLastUpdated(){
-    document.getElementById("lastUpdated").innerText =
-      "Last updated: " + formatTime(new Date());
-  }
-
-  function renderCategoryChips(){
-    const row = document.getElementById("catsRow");
-    row.innerHTML = "";
-
-    CATEGORIES.forEach(cat => {
-      const btn = document.createElement("button");
-      btn.className = "chip" + (cat === currentCategory ? " active" : "");
-      btn.innerText = cat;
-
-      btn.onclick = () => {
-        currentCategory = cat;
-
-        [...row.children].forEach(c => c.classList.remove("active"));
-        btn.classList.add("active");
-
-        loadNews();
-      };
-
-      row.appendChild(btn);
-    });
-  }
-
-  function setLangUI(){
-    const btnHi = document.getElementById("btnHi");
-    const btnEn = document.getElementById("btnEn");
-
-    if(currentLang === "hi"){
-      btnHi.classList.add("active");
-      btnEn.classList.remove("active");
-    }else{
-      btnEn.classList.add("active");
-      btnHi.classList.remove("active");
-    }
-  }
-
-  document.getElementById("btnHi").onclick = () => {
+  btnHindi.onclick = () => {
     currentLang = "hi";
-    setLangUI();
+    btnHindi.classList.add("active");
+    btnEnglish.classList.remove("active");
     loadNews();
   };
 
-  document.getElementById("btnEn").onclick = () => {
+  btnEnglish.onclick = () => {
     currentLang = "en";
-    setLangUI();
+    btnEnglish.classList.add("active");
+    btnHindi.classList.remove("active");
     loadNews();
   };
 
-  function loadNews(){
+  function updateTime() {
+    const t = new Date();
+    const timeString = t.toLocaleTimeString();
+    document.getElementById("lastUpdated").innerText = "Last updated: " + timeString;
+  }
+
+  // ✅ MAIN LOAD NEWS FUNCTION
+  function loadNews() {
     const container = document.getElementById("newsList");
-    container.innerHTML = "Loading news...";
+    container.innerHTML = "Loading news…";
 
     db.collection("news")
       .orderBy("createdAt", "desc")
       .get()
       .then(snapshot => {
         container.innerHTML = "";
-        let countNews = 0;
+        let count = 0;
 
         snapshot.forEach(doc => {
           const n = doc.data();
 
-          if(currentCategory !== "All" && n.category !== currentCategory){
+          // ✅ Category filter
+          if (currentCategory !== "All" && n.category !== currentCategory) {
             return;
           }
 
-          const langData = n.language && n.language[currentLang];
-          if(!langData) return;
+          // ✅ language map data
+          const langData = n.language?.[currentLang];
+          if (!langData) return;
 
           const card = document.createElement("div");
           card.className = "card";
 
           card.innerHTML = `
-            <h3>${langData.headline || ""}</h3>
+            <h2>${langData.headline || ""}</h2>
             <p>${langData.summary || ""}</p>
-            <div class="btn-row">
-              <button class="read-btn">Read Full News</button>
-            </div>
-            <div class="full-content">${(langData.content || "").replace(/\n/g, "<br/>")}</div>
             <div class="meta">${n.category || ""} • ${n.source || ""}</div>
+            <button class="read-btn">Read Full News</button>
+            <div class="full-content">${langData.content || ""}</div>
           `;
 
           const btn = card.querySelector(".read-btn");
           const full = card.querySelector(".full-content");
+
           btn.onclick = () => {
             full.style.display = (full.style.display === "block") ? "none" : "block";
-            btn.innerText = (full.style.display === "block") ? "Hide Full News" : "Read Full News";
           };
 
           container.appendChild(card);
-          countNews++;
+          count++;
 
-          if(countNews % 2 === 0){
+          // ✅ Ad after every 2 news
+          if (count % 2 === 0) {
             const ad = document.createElement("div");
             ad.className = "ad-box";
-            ad.innerHTML = `
-              Advertisement
-              <small>Ads will appear here (earning model)</small>
-            `;
+            ad.innerText = "Advertisement";
             container.appendChild(ad);
           }
         });
 
-        if(container.innerHTML.trim() === ""){
-          container.innerHTML = `<div class="empty">No news available.</div>`;
+        if (container.innerHTML.trim() === "") {
+          container.innerHTML = "No news available.";
         }
 
-        setLastUpdated();
+        updateTime();
       })
       .catch(err => {
         console.error(err);
-        container.innerHTML = `<div class="empty">Error loading news.</div>`;
+        container.innerHTML = "Error loading news.";
       });
   }
 
-  function startAutoRefresh(){
-    if(refreshTimer) clearInterval(refreshTimer);
-    refreshTimer = setInterval(() => {
-      loadNews();
-    }, AUTO_REFRESH_MS);
-  }
-
-  renderCategoryChips();
-  setLangUI();
+  // ✅ Initial load
   loadNews();
-  startAutoRefresh();
+  updateTime();
+
+  // ✅ Auto refresh every 10 min
+  setInterval(() => {
+    loadNews();
+  }, AUTO_REFRESH_TIME);
+</script>
+
+<!-- ✅ Service Worker Register (YOU ASKED TO ADD THIS) -->
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("Service Worker Registered ✅"))
+      .catch(err => console.log("Service Worker Error ❌", err));
+  }
 </script>
 
 </body>
