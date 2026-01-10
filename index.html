@@ -1,8 +1,13 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="hi" translate="no">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- ✅ Stop Chrome/Google auto-translate -->
+  <meta name="google" content="notranslate">
+  <meta http-equiv="Content-Language" content="hi">
+
   <title>Aapki Khabar</title>
 
   <!-- Firebase SDKs -->
@@ -11,6 +16,10 @@
 
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f4f4f4; }
+
+    /* ✅ extra support */
+    .notranslate { translate: no; }
+
     header { background: #d32f2f; color: #fff; padding: 18px 12px; text-align: center; }
     header h2 { margin: 0; font-size: 26px; }
     header p { margin: 6px 0 0; opacity: 0.95; }
@@ -137,7 +146,8 @@
 
 <body>
 
-<header>
+<!-- ✅ Header part will NOT translate now -->
+<header class="notranslate" translate="no">
   <h2>🗞️ Aapki Khabar</h2>
   <p>समझने वाली खबरें • Easy to Understand News</p>
 
@@ -148,9 +158,7 @@
 </header>
 
 <div class="cats-wrap">
-  <div class="cats" id="catsRow">
-    <!-- chips inserted by JS -->
-  </div>
+  <div class="cats" id="catsRow"></div>
   <div class="meta-bar" id="lastUpdated">Last updated: --:--</div>
 </div>
 
@@ -169,7 +177,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // ✅ categories list (fixed name)
+  // ✅ categories list
   const CATEGORIES = [
     "All",
     "Finance",
@@ -211,11 +219,9 @@
       btn.onclick = () => {
         currentCategory = cat;
 
-        // update active chip UI
         [...row.children].forEach(c => c.classList.remove("active"));
         btn.classList.add("active");
 
-        // load news again
         loadNews();
       };
 
@@ -248,7 +254,6 @@
     loadNews();
   };
 
-  // ✅ MAIN function: load news (auto refresh compatible)
   function loadNews(){
     const container = document.getElementById("newsList");
     container.innerHTML = "Loading news...";
@@ -263,7 +268,6 @@
         snapshot.forEach(doc => {
           const n = doc.data();
 
-          // Filter by category
           if(currentCategory !== "All" && n.category !== currentCategory){
             return;
           }
@@ -294,7 +298,6 @@
           container.appendChild(card);
           countNews++;
 
-          // ✅ Ad after every 2 news
           if(countNews % 2 === 0){
             const ad = document.createElement("div");
             ad.className = "ad-box";
@@ -318,16 +321,13 @@
       });
   }
 
-  // ✅ Auto refresh setup
   function startAutoRefresh(){
     if(refreshTimer) clearInterval(refreshTimer);
-
     refreshTimer = setInterval(() => {
       loadNews();
     }, AUTO_REFRESH_MS);
   }
 
-  // INIT
   renderCategoryChips();
   setLangUI();
   loadNews();
