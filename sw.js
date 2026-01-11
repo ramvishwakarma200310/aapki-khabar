@@ -1,37 +1,38 @@
-const CACHE_NAME = "aapki-khabar-cache-v2";
-const BASE_PATH = "/aapki-khabar/";
+const CACHE_NAME = "aapki-khabar-cache-v2"; // version change
+const urlsToCache = ["./", "./manifest.json"];
 
-const urlsToCache = [
-  BASE_PATH,
-  BASE_PATH + "index.html",
-  BASE_PATH + "manifest.json"
-];
-
-// Install SW
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
-  self.skipWaiting();
 });
 
-// Activate SW
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) return caches.delete(key);
-        })
-      )
+      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : null)))
     )
   );
   self.clients.claim();
 });
 
-// Fetch Strategy: Cache First, then Network
+// Network-first strategy for index/news
 self.addEventListener("fetch", (event) => {
+  const req = event.request;
+
+  // Always try network first for HTML
+  if (req.mode === "navigate" || req.destination === "document") {
+    event.respondWith(
+      fetch(req)
+        .then((res) => res)
+        .catch(() => caches.match("./"))
+    );
+    return;
+  }
+
+  // cache-first for other assets
   event.respondWith(
-    caches.match(event.request).then((response) => response || fetch(event.request))
+    caches.match(req).then((cached) => cached || fetch(req))
   );
 });
